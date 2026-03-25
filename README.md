@@ -4,7 +4,11 @@ Chatbot de recrutamento e seleção construído com **FastMCP**, **Agno** e **Ag
 
 ## Arquitetura
 
-> Diagrama interativo completo: **[docs/architecture.html](docs/architecture.html)** — abra no navegador para a visão detalhada de todas as camadas.
+> Diagramas interativos — abra no navegador:
+> - **[docs/layers.html](docs/layers.html)** — diagrama de camadas (Frontend → Infra)
+> - **[docs/uml-classes.html](docs/uml-classes.html)** — diagrama de classes UML (modelos, atributos, relacionamentos)
+> - **[docs/uml-components.html](docs/uml-components.html)** — diagrama de componentes UML (interfaces, dependências, portas)
+> - **[docs/architecture.html](docs/architecture.html)** — visão completa com detalhes de todas as camadas
 
 ```
 ┌──────────────────────────────────────────────────────────┐

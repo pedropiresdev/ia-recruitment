@@ -47,8 +47,10 @@ logs/
 .DS_Store
 Thumbs.db
 
-# ─── Cursor ──────────────────────────────────────────────────────────────────
+# ─── Cursor and Claude ──────────────────────────────────────────────────────────────────
 .cursor/
+.claude/settings.local.json
+
 
 # ─── Node.js / Frontend (agent-ui) ───────────────────────────────────────────
 agent-ui/node_modules/
