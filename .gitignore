@@ -49,7 +49,7 @@ Thumbs.db
 
 # ─── Cursor and Claude ──────────────────────────────────────────────────────────────────
 .cursor/
-.claude/settings.local.json
+.claude/
 
 
 # ─── Node.js / Frontend (agent-ui) ───────────────────────────────────────────

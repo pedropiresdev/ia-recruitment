@@ -1,0 +1,39 @@
+{
+    admin off
+}
+
+# Para HTTPS automático, troque :80 pelo domínio público:
+#   recrutamento.empresa.com {
+# O Caddy provisiona o certificado TLS automaticamente via Let's Encrypt.
+
+:80 {
+
+    # ── MCP servers ──────────────────────────────────────────────────────────
+    # handle_path strip o prefixo antes de repassar ao container.
+    # O FastMCP sempre serve em /mcp, então o rewrite garante o path correto.
+
+    handle_path /mcp/job-opening* {
+        rewrite * /mcp
+        reverse_proxy mcp-job-opening:8001
+    }
+
+    handle_path /mcp/process-management* {
+        rewrite * /mcp
+        reverse_proxy mcp-process-management:8002
+    }
+
+    handle_path /mcp/candidate-screening* {
+        rewrite * /mcp
+        reverse_proxy mcp-candidate-screening:8003
+    }
+
+    handle_path /mcp/scheduling* {
+        rewrite * /mcp
+        reverse_proxy mcp-scheduling:8004
+    }
+
+    # ── AgentOS (chat backend) ────────────────────────────────────────────────
+    handle {
+        reverse_proxy agentos:7777
+    }
+}

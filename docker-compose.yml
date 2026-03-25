@@ -32,6 +32,105 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 
+  mcp-job-opening:
+    build: .
+    restart: unless-stopped
+    command: >
+      uv run fastmcp run tools/job_opening_server.py:mcp
+      --transport streamable-http --host 0.0.0.0 --port 8001
+    environment:
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/recruitment
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mcp-process-management:
+    build: .
+    restart: unless-stopped
+    command: >
+      uv run fastmcp run tools/process_management_server.py:mcp
+      --transport streamable-http --host 0.0.0.0 --port 8002
+    environment:
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/recruitment
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mcp-candidate-screening:
+    build: .
+    restart: unless-stopped
+    command: >
+      uv run fastmcp run tools/candidate_screening_server.py:mcp
+      --transport streamable-http --host 0.0.0.0 --port 8003
+    environment:
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/recruitment
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mcp-scheduling:
+    build: .
+    restart: unless-stopped
+    command: >
+      uv run fastmcp run tools/interview_scheduling_server.py:mcp
+      --transport streamable-http --host 0.0.0.0 --port 8004
+    environment:
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/recruitment
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  agentos:
+    build: .
+    restart: unless-stopped
+    command: uv run python agentos.py
+    environment:
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/recruitment
+      JOB_OPENING_SERVER_URL: http://mcp-job-opening:8001/mcp
+      PROCESS_MANAGEMENT_SERVER_URL: http://mcp-process-management:8002/mcp
+      SCREENING_SERVER_URL: http://mcp-candidate-screening:8003/mcp
+      SCHEDULING_SERVER_URL: http://mcp-scheduling:8004/mcp
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mcp-job-opening:
+        condition: service_started
+      mcp-process-management:
+        condition: service_started
+      mcp-candidate-screening:
+        condition: service_started
+      mcp-scheduling:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - mcp-job-opening
+      - mcp-process-management
+      - mcp-candidate-screening
+      - mcp-scheduling
+      - agentos
+
 volumes:
   postgres_data:
   pgadmin_data:
+  caddy_data:
+  caddy_config:

@@ -1,5 +1,6 @@
 .PHONY: install install-dev start stop restart test lint format check fix status help \
-        db-up db-down db-logs db-shell migrate migrate-auto migrate-history
+        infra-up infra-down infra-logs infra-rebuild \
+        db-up db-down db-stop db-logs db-shell db-reset migrate migrate-auto migrate-history
 
 # ─── Configuração ────────────────────────────────────────────────────────────
 
@@ -15,30 +16,54 @@ install:
 install-dev:
 	uv sync --extra dev
 
+# ─── Infraestrutura completa (Docker) ────────────────────────────────────────
+
+infra-up:
+	docker compose up -d --build
+	@echo ""
+	@echo "Serviços no ar:"
+	@echo "  Caddy (entry)    → http://localhost"
+	@echo "  job-opening      → http://localhost/mcp/job-opening"
+	@echo "  process-mgmt     → http://localhost/mcp/process-management"
+	@echo "  candidate        → http://localhost/mcp/candidate-screening"
+	@echo "  scheduling       → http://localhost/mcp/scheduling"
+	@echo "  AgentOS          → http://localhost (via Caddy)"
+	@echo "  pgAdmin          → http://localhost:5050"
+
+infra-down:
+	docker compose down
+
+infra-logs:
+	docker compose logs -f
+
+infra-rebuild:
+	docker compose down
+	docker compose up -d --build
+
 # ─── Banco de dados (Docker) ─────────────────────────────────────────────────
 
 db-up:
-	docker compose up -d
+	docker compose up -d postgres pgadmin
 	@echo "Aguardando PostgreSQL ficar pronto..."
-	@until docker compose exec postgres pg_isready -U recruitment_user -d recruitment > /dev/null 2>&1; do sleep 1; done
+	@until docker compose exec postgres pg_isready -U admin -d recruitment > /dev/null 2>&1; do sleep 1; done
 	@echo "PostgreSQL pronto em localhost:5432"
-	@echo "pgAdmin disponível em http://localhost:5050 (admin@recruitment.local / admin)"
+	@echo "pgAdmin disponível em http://localhost:5050"
 
 db-down:
-	docker compose down
+	docker compose stop postgres pgadmin
 
 db-stop:
-	docker compose stop
+	docker compose stop postgres pgadmin
 
 db-logs:
 	docker compose logs -f postgres
 
 db-shell:
-	docker compose exec postgres psql -U recruitment_user -d recruitment
+	docker compose exec postgres psql -U admin -d recruitment
 
 db-reset:
 	docker compose down -v
-	docker compose up -d
+	docker compose up -d postgres pgadmin
 
 # ─── Migrações (Alembic) ─────────────────────────────────────────────────────
 
@@ -121,9 +146,15 @@ help:
 	@echo "    make install           Instala dependências de produção"
 	@echo "    make install-dev       Instala dependências + dev (pytest, ruff)"
 	@echo ""
+	@echo "  Infraestrutura completa"
+	@echo "    make infra-up          Build e sobe tudo (MCP servers + AgentOS + DB)"
+	@echo "    make infra-down        Para e remove todos os containers"
+	@echo "    make infra-logs        Logs de todos os serviços em tempo real"
+	@echo "    make infra-rebuild     Recria todos os containers com rebuild"
+	@echo ""
 	@echo "  Banco de dados"
-	@echo "    make db-up             Sobe PostgreSQL + pgAdmin via Docker"
-	@echo "    make db-down           Para e remove os containers"
+	@echo "    make db-up             Sobe apenas PostgreSQL + pgAdmin"
+	@echo "    make db-down           Para os containers de banco"
 	@echo "    make db-stop           Para os containers (mantém volumes)"
 	@echo "    make db-logs           Logs do PostgreSQL em tempo real"
 	@echo "    make db-shell          Abre psql no container"
