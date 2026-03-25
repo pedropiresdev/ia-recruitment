@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruitment Chatbot — Arquitetura</title>
+  <style>
+    :root {
+      --bg:       #0b1120;
+      --surface:  #111827;
+      --card:     #1a2235;
+      --border:   #1e3048;
+      --text:     #e2e8f0;
+      --muted:    #7d93b2;
+      --dim:      #4a5e78;
+
+      --frontend: #6366f1;
+      --api:      #0ea5e9;
+      --agent:    #f59e0b;
+      --mcp:      #10b981;
+      --tools:    #8b5cf6;
+      --services: #ec4899;
+      --orm:      #f97316;
+      --db:       #ef4444;
+      --infra:    #64748b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 2.5rem 1.5rem 3rem;
+      line-height: 1.5;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────────── */
+    .page-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .page-header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #818cf8 0%, #38bdf8 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+    .page-header p {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    /* ─── Diagram wrapper ─────────────────────────────────────────── */
+    .diagram {
+      max-width: 920px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    /* ─── Layer card ──────────────────────────────────────────────── */
+    .layer {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem 1.4rem;
+      background: var(--surface);
+      position: relative;
+    }
+    .layer-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 0.8rem;
+    }
+    .layer-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      flex-shrink: 0;
+    }
+    .layer-meta { flex: 1; min-width: 0; }
+    .layer-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .layer-subtitle {
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+    .layer-port {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.18rem 0.6rem;
+      border-radius: 100px;
+      border: 1px solid currentColor;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ─── Pills (tags) ────────────────────────────────────────────── */
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .pill {
+      font-size: 0.67rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 100px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* ─── Connector arrow ─────────────────────────────────────────── */
+    .connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.3rem 0;
+      gap: 0;
+      user-select: none;
+    }
+    .connector-stem {
+      width: 2px;
+      height: 18px;
+      background: var(--dim);
+    }
+    .connector-label {
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      background: var(--bg);
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
+    }
+    .connector-arrow {
+      color: var(--dim);
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    /* ─── Fan connector (1 → 4) ───────────────────────────────────── */
+    .fan-connector {
+      position: relative;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fan-connector svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .fan-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      background: var(--bg);
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    /* ─── 4-column server grid ────────────────────────────────────── */
+    .servers-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.7rem;
+    }
+    .server-card {
+      border: 1px solid rgba(139,92,246,0.25);
+      border-radius: 10px;
+      padding: 0.75rem;
+      background: rgba(139,92,246,0.06);
+    }
+    .server-port-badge {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.62rem;
+      color: var(--tools);
+      background: rgba(139,92,246,0.12);
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.35rem;
+    }
+    .server-name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.15rem;
+    }
+    .server-desc {
+      font-size: 0.64rem;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+    .tool-count {
+      font-size: 0.62rem;
+      color: var(--tools);
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .tool-list {
+      list-style: none;
+    }
+    .tool-list li {
+      font-size: 0.61rem;
+      color: var(--dim);
+      padding: 0.08rem 0 0.08rem 0.9rem;
+      position: relative;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+    .tool-list li::before {
+      content: '›';
+      position: absolute;
+      left: 0.1rem;
+      color: var(--tools);
+    }
+
+    /* ─── Side-by-side grid ───────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7rem;
+    }
+
+    /* ─── DB tables grid ──────────────────────────────────────────── */
+    .db-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6rem;
+    }
+    .db-table {
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 0.55rem 0.65rem;
+      background: rgba(239,68,68,0.04);
+    }
+    .db-table-name {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #fca5a5;
+      margin-bottom: 0.25rem;
+    }
+    .db-field {
+      font-size: 0.6rem;
+      color: var(--dim);
+      padding: 0.06rem 0;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    /* ─── Infra row ───────────────────────────────────────────────── */
+    .infra-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 0.7rem;
+      align-items: start;
+    }
+    .infra-card {
+      border: 1px solid rgba(100,116,139,0.25);
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      background: rgba(100,116,139,0.06);
+    }
+    .infra-card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--infra);
+      margin-bottom: 0.3rem;
+    }
+    .infra-detail {
+      font-size: 0.62rem;
+      color: var(--dim);
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    /* ─── Color themes ────────────────────────────────────────────── */
+    .t-frontend { border-color: rgba(99,102,241,0.5); }
+    .t-frontend .layer-icon { background: rgba(99,102,241,0.12); color: var(--frontend); }
+    .t-frontend .layer-title { color: #a5b4fc; }
+    .t-frontend .layer-port { color: var(--frontend); border-color: var(--frontend); }
+
+    .t-api { border-color: rgba(14,165,233,0.5); }
+    .t-api .layer-icon { background: rgba(14,165,233,0.12); color: var(--api); }
+    .t-api .layer-title { color: #7dd3fc; }
+    .t-api .layer-port { color: var(--api); border-color: var(--api); }
+
+    .t-agent { border-color: rgba(245,158,11,0.5); }
+    .t-agent .layer-icon { background: rgba(245,158,11,0.12); color: var(--agent); }
+    .t-agent .layer-title { color: #fcd34d; }
+    .t-agent .layer-port { color: var(--agent); border-color: var(--agent); }
+
+    .t-tools { border-color: rgba(139,92,246,0.5); }
+    .t-tools .layer-icon { background: rgba(139,92,246,0.12); color: var(--tools); }
+    .t-tools .layer-title { color: #c4b5fd; }
+
+    .t-services { border-color: rgba(236,72,153,0.4); }
+    .t-services .layer-icon { background: rgba(236,72,153,0.12); color: var(--services); }
+    .t-services .layer-title { color: #f9a8d4; }
+
+    .t-orm { border-color: rgba(249,115,22,0.4); }
+    .t-orm .layer-icon { background: rgba(249,115,22,0.12); color: var(--orm); }
+    .t-orm .layer-title { color: #fdba74; }
+
+    .t-db { border-color: rgba(239,68,68,0.5); }
+    .t-db .layer-icon { background: rgba(239,68,68,0.12); color: var(--db); }
+    .t-db .layer-title { color: #fca5a5; }
+    .t-db .layer-port { color: var(--db); border-color: var(--db); }
+
+    .t-infra { border-color: rgba(100,116,139,0.4); }
+    .t-infra .layer-icon { background: rgba(100,116,139,0.12); color: var(--infra); }
+    .t-infra .layer-title { color: #94a3b8; }
+
+    /* ─── Legend ──────────────────────────────────────────────────── */
+    .legend {
+      max-width: 920px;
+      margin: 1.5rem auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      justify-content: center;
+      padding: 0.85rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ─── Highlight blob on agent card ───────────────────────────── */
+    .agent-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7rem;
+    }
+    .agent-col-title {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+    .agent-model-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 8px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.72rem;
+      color: #fcd34d;
+      font-weight: 600;
+      margin-bottom: 0.45rem;
+    }
+    .widget-badge {
+      font-size: 0.63rem;
+      padding: 0.12rem 0.5rem;
+      border-radius: 100px;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      color: #fbbf24;
+      margin: 0.12rem;
+      display: inline-block;
+    }
+
+    /* services col */
+    .service-item {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.72rem;
+    }
+    .service-item:last-child { border-bottom: none; }
+    .service-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--services);
+      flex-shrink: 0;
+    }
+    .service-name { color: var(--text); font-weight: 500; }
+    .service-note { color: var(--muted); font-size: 0.62rem; margin-left: auto; }
+
+    .schemas-list { display: flex; flex-direction: column; gap: 0.2rem; }
+    .schema-item {
+      font-size: 0.68rem;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      color: var(--muted);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(236,72,153,0.06);
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Recruitment Chatbot — Arquitetura</h1>
+  <p>Visão completa das camadas: Frontend · AgentOS · Agente IA · MCP · Serviços · Banco de dados</p>
+</div>
+
+<div class="diagram">
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 1 — Frontend
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-frontend">
+    <div class="layer-header">
+      <div class="layer-icon">🖥️</div>
+      <div class="layer-meta">
+        <div class="layer-title">AgentUI — Frontend</div>
+        <div class="layer-subtitle">Next.js 15 · React 18 · TypeScript · Tailwind · Zustand</div>
+      </div>
+      <div class="layer-port">:3000</div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="agent-col-title">Componentes Chat</div>
+        <div class="pills">
+          <span class="pill">Sidebar</span>
+          <span class="pill">ChatArea</span>
+          <span class="pill">MessageArea</span>
+          <span class="pill">PromptInitializer</span>
+          <span class="pill">RecruitmentNav</span>
+          <span class="pill">MarkdownRenderer</span>
+        </div>
+      </div>
+      <div>
+        <div class="agent-col-title">Widgets de Recrutamento</div>
+        <div class="pills">
+          <span class="pill">ProcessDashboardWidget</span>
+          <span class="pill">ProcessDetailWidget</span>
+          <span class="pill">CandidateBoardWidget</span>
+          <span class="pill">CandidateProfileWidget</span>
+          <span class="pill">InterviewWidget</span>
+          <span class="pill">SchedulingOptionsWidget</span>
+          <span class="pill">InterviewCard</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connector 1→2 -->
+  <div class="connector">
+    <div class="connector-stem"></div>
+    <div class="connector-label">HTTP / SSE (streaming)</div>
+    <div class="connector-stem"></div>
+    <div class="connector-arrow">▼</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 2 — AgentOS / FastAPI
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-api">
+    <div class="layer-header">
+      <div class="layer-icon">⚡</div>
+      <div class="layer-meta">
+        <div class="layer-title">AgentOS — API Gateway</div>
+        <div class="layer-subtitle">FastAPI · JWT RBAC · WebSocket Streaming · Sessões PostgreSQL</div>
+      </div>
+      <div class="layer-port">:7777</div>
+    </div>
+    <div class="pills">
+      <span class="pill">GET /api/processes</span>
+      <span class="pill">GET /api/processes/{id}</span>
+      <span class="pill">Agent WebSocket stream</span>
+      <span class="pill">CORS configurado</span>
+      <span class="pill">Persistência de sessão (Agno PostgresDb)</span>
+    </div>
+  </div>
+
+  <!-- Connector 2→3 -->
+  <div class="connector">
+    <div class="connector-stem"></div>
+    <div class="connector-label">MCPTools (Agno)</div>
+    <div class="connector-stem"></div>
+    <div class="connector-arrow">▼</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 3 — Agent (Agno + Claude)
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-agent">
+    <div class="layer-header">
+      <div class="layer-icon">🤖</div>
+      <div class="layer-meta">
+        <div class="layer-title">Recruitment Agent — Agno + Claude</div>
+        <div class="layer-subtitle">agents/recruitment_agent.py · Orquestrador de ferramentas MCP · Português (BR)</div>
+      </div>
+    </div>
+    <div class="agent-body">
+      <div>
+        <div class="agent-col-title">Modelo</div>
+        <div class="agent-model-badge">
+          <span>◆</span> claude-sonnet-4-5
+        </div>
+        <div class="agent-col-title" style="margin-top:0.5rem">Contexto</div>
+        <div class="pills">
+          <span class="pill">add_datetime_to_context</span>
+          <span class="pill">5 runs de histórico</span>
+          <span class="pill">markdown: true</span>
+        </div>
+      </div>
+      <div>
+        <div class="agent-col-title">Widgets de resposta (7 tipos)</div>
+        <div>
+          <span class="widget-badge">process_dashboard</span>
+          <span class="widget-badge">process_detail</span>
+          <span class="widget-badge">candidate_board</span>
+          <span class="widget-badge">candidate_profile</span>
+          <span class="widget-badge">interview_list</span>
+          <span class="widget-badge">interview_card</span>
+          <span class="widget-badge">scheduling_options</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fan connector 1→4 -->
+  <div style="position:relative; height:54px; display:flex; align-items:center; justify-content:center;">
+    <svg viewBox="0 0 920 54" preserveAspectRatio="none"
+         style="width:100%; height:100%; position:absolute; top:0; left:0; overflow:visible;">
+      <!-- vertical stem down from center top -->
+      <line x1="460" y1="0" x2="460" y2="20" stroke="#1e3048" stroke-width="2"/>
+      <!-- horizontal bar -->
+      <line x1="115" y1="20" x2="805" y2="20" stroke="#1e3048" stroke-width="2"/>
+      <!-- 4 drops to server cards -->
+      <line x1="115" y1="20" x2="115" y2="54" stroke="#1e3048" stroke-width="2"/>
+      <line x1="345" y1="20" x2="345" y2="54" stroke="#1e3048" stroke-width="2"/>
+      <line x1="575" y1="20" x2="575" y2="54" stroke="#1e3048" stroke-width="2"/>
+      <line x1="805" y1="20" x2="805" y2="54" stroke="#1e3048" stroke-width="2"/>
+    </svg>
+    <div class="fan-label">MCP Protocol (streamable-http)</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 4 — FastMCP Servers
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-tools">
+    <div class="layer-header">
+      <div class="layer-icon">🔧</div>
+      <div class="layer-meta">
+        <div class="layer-title">FastMCP Servers — Ferramentas por Domínio</div>
+        <div class="layer-subtitle">tools/ · FastMCP 2.0 · transport: streamable-http · 4 instâncias independentes</div>
+      </div>
+    </div>
+    <div class="servers-grid">
+
+      <!-- Job Opening -->
+      <div class="server-card">
+        <div class="server-port-badge">:8001</div>
+        <div class="server-name">Job Opening</div>
+        <div class="server-desc">Ciclo de vida de vagas</div>
+        <div class="tool-count">5 ferramentas</div>
+        <ul class="tool-list">
+          <li>create_job_opening</li>
+          <li>generate_job_description</li>
+          <li>collect_opening_details</li>
+          <li>link_opening_to_posting</li>
+          <li>send_approval_reminder</li>
+        </ul>
+      </div>
+
+      <!-- Process Management -->
+      <div class="server-card">
+        <div class="server-port-badge">:8002</div>
+        <div class="server-name">Process Management</div>
+        <div class="server-desc">Processos seletivos</div>
+        <div class="tool-count">8 ferramentas</div>
+        <ul class="tool-list">
+          <li>list_processes</li>
+          <li>get_process_detail</li>
+          <li>get_process_timeline</li>
+          <li>get_candidates_by_stage</li>
+          <li>suspend_process</li>
+          <li>get_sla_status</li>
+          <li>get_bottlenecks</li>
+          <li>close_process</li>
+        </ul>
+      </div>
+
+      <!-- Candidate Screening -->
+      <div class="server-card">
+        <div class="server-port-badge">:8003</div>
+        <div class="server-name">Candidate Screening</div>
+        <div class="server-desc">Triagem de candidatos</div>
+        <div class="tool-count">4 ferramentas</div>
+        <ul class="tool-list">
+          <li>screen_candidate</li>
+          <li>get_candidate_profile</li>
+          <li>update_screening_notes</li>
+          <li>advance_candidate_stage</li>
+        </ul>
+      </div>
+
+      <!-- Interview Scheduling -->
+      <div class="server-card">
+        <div class="server-port-badge">:8004</div>
+        <div class="server-name">Interview Scheduling</div>
+        <div class="server-desc">Agendamento de entrevistas</div>
+        <div class="tool-count">7 ferramentas</div>
+        <ul class="tool-list">
+          <li>schedule_interview</li>
+          <li>reschedule_interview</li>
+          <li>cancel_interview</li>
+          <li>get_available_slots</li>
+          <li>get_interviews_by_process</li>
+          <li>get_interview_details</li>
+          <li>get_scheduling_options</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Connector 4→5 -->
+  <div class="connector">
+    <div class="connector-stem"></div>
+    <div class="connector-label">chamadas de serviço (async)</div>
+    <div class="connector-stem"></div>
+    <div class="connector-arrow">▼</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 5 — Services + Schemas
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-services">
+    <div class="layer-header">
+      <div class="layer-icon">⚙️</div>
+      <div class="layer-meta">
+        <div class="layer-title">Services &amp; Schemas — Lógica de Negócio</div>
+        <div class="layer-subtitle">services/ · schemas/ · Pydantic v2 · sem acoplamento de framework</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="agent-col-title">Services</div>
+        <div class="service-item">
+          <div class="service-dot"></div>
+          <span class="service-name">job_opening.py</span>
+          <span class="service-note">geração de JD, criação</span>
+        </div>
+        <div class="service-item">
+          <div class="service-dot"></div>
+          <span class="service-name">process_management.py</span>
+          <span class="service-note">SLA, gargalos, 200+ LOC</span>
+        </div>
+        <div class="service-item">
+          <div class="service-dot"></div>
+          <span class="service-name">candidate_screening.py</span>
+          <span class="service-note">triagem, notas</span>
+        </div>
+        <div class="service-item">
+          <div class="service-dot"></div>
+          <span class="service-name">interview_scheduling.py</span>
+          <span class="service-note">disponibilidade, booking</span>
+        </div>
+      </div>
+      <div>
+        <div class="agent-col-title">Schemas Pydantic v2</div>
+        <div class="schemas-list">
+          <span class="schema-item">ProcessSummary · ProcessDetail</span>
+          <span class="schema-item">CandidateSummary · CandidateProfile</span>
+          <span class="schema-item">InterviewOutput · SchedulingOptions</span>
+          <span class="schema-item">JobOpeningInput · JobOpeningOutput</span>
+          <span class="schema-item">TimelineEvent · SLAStatus</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connector 5→6 -->
+  <div class="connector">
+    <div class="connector-stem"></div>
+    <div class="connector-label">repository pattern (async)</div>
+    <div class="connector-stem"></div>
+    <div class="connector-arrow">▼</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 6 — ORM / Repositories
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-orm">
+    <div class="layer-header">
+      <div class="layer-icon">🗄️</div>
+      <div class="layer-meta">
+        <div class="layer-title">SQLAlchemy 2 + Repositories</div>
+        <div class="layer-subtitle">db/models/ · db/repositories/ · AsyncSession · asyncpg driver</div>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill">JobOpeningRepository</span>
+      <span class="pill">ProcessRepository</span>
+      <span class="pill">CandidateRepository</span>
+      <span class="pill">InterviewRepository</span>
+      <span class="pill">InterviewerRepository</span>
+      <span class="pill">pool_size=5 · max_overflow=10</span>
+      <span class="pill">expire_on_commit=False</span>
+      <span class="pill">Alembic migrations</span>
+    </div>
+  </div>
+
+  <!-- Connector 6→7 -->
+  <div class="connector">
+    <div class="connector-stem"></div>
+    <div class="connector-label">postgresql+asyncpg://</div>
+    <div class="connector-stem"></div>
+    <div class="connector-arrow">▼</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 7 — PostgreSQL
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-db">
+    <div class="layer-header">
+      <div class="layer-icon">🐘</div>
+      <div class="layer-meta">
+        <div class="layer-title">PostgreSQL 16</div>
+        <div class="layer-subtitle">Docker · volumes persistentes · Alembic migrations</div>
+      </div>
+      <div class="layer-port">:5432</div>
+    </div>
+    <div class="db-grid">
+
+      <div class="db-table">
+        <div class="db-table-name">job_openings</div>
+        <div class="db-field">position_title, department</div>
+        <div class="db-field">seniority_level, deadline_days</div>
+        <div class="db-field">requirements, salary_range</div>
+        <div class="db-field">job_description_draft</div>
+        <div class="db-field">approval_status, job_posting_id</div>
+      </div>
+
+      <div class="db-table">
+        <div class="db-table-name">selection_processes</div>
+        <div class="db-field">job_title, department</div>
+        <div class="db-field">recruiter_id, status</div>
+        <div class="db-field">sla_deadline_date, sla_status</div>
+        <div class="db-field">suspension_reason</div>
+        <div class="db-field">→ process_timeline (1:N)</div>
+      </div>
+
+      <div class="db-table">
+        <div class="db-table-name">candidates</div>
+        <div class="db-field">name, email, process_id</div>
+        <div class="db-field">current_stage</div>
+        <div class="db-field">screening_recommendation</div>
+        <div class="db-field">screening_notes</div>
+        <div class="db-field">applied_at, stage_updated_at</div>
+      </div>
+
+      <div class="db-table">
+        <div class="db-table-name">interviews</div>
+        <div class="db-field">candidate_id, process_id</div>
+        <div class="db-field">interviewer_id</div>
+        <div class="db-field">interview_type, status</div>
+        <div class="db-field">scheduled_at, location</div>
+        <div class="db-field">notes</div>
+      </div>
+
+      <div class="db-table">
+        <div class="db-table-name">interviewers</div>
+        <div class="db-field">name, email, department</div>
+        <div class="db-field">role, available_slots</div>
+        <div class="db-field">specializations</div>
+      </div>
+
+      <div class="db-table">
+        <div class="db-table-name">process_timeline</div>
+        <div class="db-field">process_id (FK)</div>
+        <div class="db-field">stage, event_date</div>
+        <div class="db-field">actor, notes</div>
+        <div class="db-field">→ trilha de auditoria</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Connector 7→8 -->
+  <div class="connector">
+    <div class="connector-stem"></div>
+    <div class="connector-label">docker-compose.yml</div>
+    <div class="connector-stem"></div>
+    <div class="connector-arrow">▼</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LAYER 8 — Infrastructure / Docker
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="layer t-infra">
+    <div class="layer-header">
+      <div class="layer-icon">🐳</div>
+      <div class="layer-meta">
+        <div class="layer-title">Infraestrutura — Docker Compose</div>
+        <div class="layer-subtitle">docker-compose.yml · start.sh · Makefile</div>
+      </div>
+    </div>
+    <div class="infra-grid">
+      <div>
+        <div class="infra-card">
+          <div class="infra-card-title">Serviços Docker</div>
+          <div class="infra-detail">postgres:16-alpine → :5432 · volume: postgres_data</div>
+          <div class="infra-detail" style="margin-top:0.3rem">pgadmin4:latest → :5050 · volume: pgadmin_data</div>
+          <div class="infra-detail" style="margin-top:0.3rem">healthcheck: pg_isready · depends_on: service_healthy</div>
+        </div>
+      </div>
+      <div>
+        <div class="infra-card">
+          <div class="infra-card-title">Startup (start.sh)</div>
+          <div class="infra-detail">1. MCP servers :8001–:8004</div>
+          <div class="infra-detail">2. sleep 4s</div>
+          <div class="infra-detail">3. AgentOS :7777</div>
+        </div>
+        <div class="infra-card" style="margin-top:0.5rem">
+          <div class="infra-card-title">pgAdmin</div>
+          <div class="infra-detail">http://localhost:5050</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.diagram -->
+
+<!-- ─── Legend ─────────────────────────────────────────────────────── -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--frontend)"></div>
+    Frontend (Next.js)
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--api)"></div>
+    AgentOS (FastAPI)
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--agent)"></div>
+    Agente IA (Agno + Claude)
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--mcp)"></div>
+    MCP Protocol
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--tools)"></div>
+    FastMCP Servers
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--services)"></div>
+    Services &amp; Schemas
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--orm)"></div>
+    SQLAlchemy / Repos
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--db)"></div>
+    PostgreSQL
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:var(--infra)"></div>
+    Docker Infra
+  </div>
+</div>
+
+</body>
+</html>

@@ -4,34 +4,60 @@ Chatbot de recrutamento e seleção construído com **FastMCP**, **Agno** e **Ag
 
 ## Arquitetura
 
+> Diagrama interativo completo: **[docs/architecture.html](docs/architecture.html)** — abra no navegador para a visão detalhada de todas as camadas.
+
 ```
-┌─────────────────────────────────────┐
-│        AgentUI  (Next.js :3000)     │  ← interface do recrutador
-└────────────────┬────────────────────┘
-                 │ HTTP / SSE
-┌────────────────▼────────────────────┐
-│     AgentOS  (FastAPI :7777)        │  ← agentos.py
-│  JWT RBAC · streaming · sessões     │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│         Agno Agent Layer            │  ← agents/
-│   recruitment_agent.py              │
-└────────────────┬────────────────────┘
-                 │ MCP protocol
-┌────────────────▼────────────────────┐
-│       FastMCP Servers               │  ← tools/
-│  :8001 job-opening                  │
-│  :8002 process-management           │
-│  :8003 candidate-screening          │
-│  :8004 interview-scheduling         │
-└────────────────┬────────────────────┘
-                 │
-┌────────────────▼────────────────────┐
-│         Services Layer              │  ← services/
-│   Lógica de negócio · DB · APIs     │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│           AgentUI  (Next.js :3000)                       │
+│  Chat · Widgets (ProcessDashboard, CandidateBoard …)     │
+└───────────────────────┬──────────────────────────────────┘
+                        │  HTTP / SSE (streaming)
+┌───────────────────────▼──────────────────────────────────┐
+│           AgentOS  (FastAPI :7777)                        │
+│  JWT RBAC · WebSocket streaming · sessões PostgreSQL      │
+└───────────────────────┬──────────────────────────────────┘
+                        │  MCPTools (Agno)
+┌───────────────────────▼──────────────────────────────────┐
+│      Recruitment Agent  (Agno + claude-sonnet-4-5)        │
+│  7 widgets · histórico de conversas · instruções PT-BR    │
+└──────┬───────────┬──────────────┬──────────────┬─────────┘
+       │           │    MCP Protocol (streamable-http)
+┌──────▼───┐ ┌─────▼──────┐ ┌────▼──────┐ ┌─────▼────────┐
+│:8001     │ │:8002        │ │:8003      │ │:8004         │
+│job-      │ │process-     │ │candidate- │ │interview-    │
+│opening   │ │management   │ │screening  │ │scheduling    │
+│5 tools   │ │8 tools      │ │4 tools    │ │7 tools       │
+└──────┬───┘ └─────┬──────┘ └────┬──────┘ └─────┬────────┘
+       └───────────┴──────────────┴──────────────┘
+                        │  chamadas async
+┌───────────────────────▼──────────────────────────────────┐
+│           Services + Schemas  (services/ · schemas/)      │
+│  Lógica de negócio pura · Pydantic v2 · SLA · gargalos   │
+└───────────────────────┬──────────────────────────────────┘
+                        │  repository pattern
+┌───────────────────────▼──────────────────────────────────┐
+│           SQLAlchemy 2 + Repositories  (db/)              │
+│  AsyncSession · asyncpg · pool_size=5 · Alembic           │
+└───────────────────────┬──────────────────────────────────┘
+                        │  postgresql+asyncpg://
+┌───────────────────────▼──────────────────────────────────┐
+│           PostgreSQL 16  (Docker :5432)                   │
+│  job_openings · selection_processes · candidates          │
+│  interviews · interviewers · process_timeline             │
+└──────────────────────────────────────────────────────────┘
 ```
+
+| Camada | Tecnologia | Porta |
+|---|---|---|
+| Frontend | Next.js 15 + React 18 + Zustand | :3000 |
+| API Gateway | FastAPI (AgentOS) + JWT RBAC | :7777 |
+| Agente IA | Agno + Claude Sonnet 4.5 | — |
+| Protocolo | MCP via FastMCP 2.0 (streamable-http) | — |
+| MCP Servers | 4 instâncias independentes | :8001–:8004 |
+| Serviços | Python async (sem framework) | — |
+| ORM | SQLAlchemy 2 + asyncpg | — |
+| Banco | PostgreSQL 16 (Docker) | :5432 |
+| Admin DB | pgAdmin 4 (Docker) | :5050 |
 
 ## Pré-requisitos
 
