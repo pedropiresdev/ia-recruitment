@@ -216,6 +216,89 @@ pnpm dev
 A interface estará disponível em `http://localhost:3000`.  
 Configure o endpoint do AgentOS no sidebar do AgentUI para `http://localhost:7777`.
 
+## Integração com a LiGiaPro
+
+O agente de recrutamento expõe um **MCP server** dedicado (Orchestrator) que a LiGiaPro consome como qualquer outro agente especializado do ecossistema — via protocolo MCP (streamable-http).
+
+### Endpoint MCP
+
+| Ambiente | URL |
+|---|---|
+| Local (dev) | `http://localhost:8000/mcp` |
+| Via Caddy (produção) | `https://<domínio>/mcp/recruitment` |
+
+### Tool disponível
+
+O Orchestrator expõe **uma única tool** que encapsula toda a lógica de recrutamento:
+
+```
+handle_recruitment_message(message: str, session_id: str) → str
+```
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `message` | `str` | Mensagem do usuário em linguagem natural (PT-BR) |
+| `session_id` | `str` | Identificador único da sessão — use o `user_id` ou `conversation_id` da LiGiaPro |
+
+A resposta é uma `str` em markdown que pode incluir blocos JSON de widget com prefixo `__widget` para renderização de dashboards, boards de candidatos, calendários de entrevistas etc. Se a LiGiaPro não renderizar widgets, o texto markdown já é autocontido e legível.
+
+### Como registrar o agente na LiGiaPro
+
+A LiGiaPro descobre as capacidades do agente via MCP — basta apontar para o endpoint:
+
+```json
+{
+  "name": "recruitment-orchestrator",
+  "transport": "streamable-http",
+  "url": "https://<domínio>/mcp/recruitment"
+}
+```
+
+O protocolo MCP expõe automaticamente o schema da tool `handle_recruitment_message` com seus parâmetros e docstring. O orquestrador LiGiaPro (padrão Magentic) identifica essa tool e a aciona quando o usuário fizer perguntas relacionadas a vagas, processos seletivos, candidatos ou entrevistas.
+
+### Gerenciamento de sessão e histórico
+
+O Orchestrator mantém **histórico de conversa por `session_id`** em uma tabela PostgreSQL dedicada (`orchestrator_sessions`) — separada do histórico do AgentUI. Isso garante que cada usuário da LiGiaPro tenha continuidade de contexto entre mensagens distintas, mesmo que a conversa seja retomada horas depois.
+
+```
+Usuário LiGiaPro
+      │
+      │  MCP call: handle_recruitment_message(
+      │      message="Quais vagas estão abertas?",
+      │      session_id="ligia_user_42"
+      │  )
+      ▼
+Orchestrator (:8000)
+      │  Recupera histórico de session "ligia_user_42"
+      │  Envia ao Recruitment Agent
+      ▼
+Recruitment Agent (Agno + Claude)
+      │  Consulta MCP servers internos (:8001–:8004)
+      │  Gera resposta em PT-BR
+      ▼
+Orchestrator
+      │  Persiste histórico atualizado
+      │  Retorna resposta em markdown
+      ▼
+LiGiaPro → Usuário (WhatsApp / Teams / Webchat)
+```
+
+### Exemplo de chamada MCP (Python)
+
+```python
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+async with streamablehttp_client("https://<domínio>/mcp/recruitment") as (read, write, _):
+    async with ClientSession(read, write) as session:
+        await session.initialize()
+        result = await session.call_tool(
+            "handle_recruitment_message",
+            {"message": "Abra uma vaga de Engenheiro Backend Sênior", "session_id": "user_42"},
+        )
+        print(result.content[0].text)
+```
+
 ## Estrutura do projeto
 
 ```
