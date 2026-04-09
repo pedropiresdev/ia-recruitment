@@ -38,6 +38,10 @@ uv run fastmcp run tools/interview_scheduling_server.py:mcp \
     --transport streamable-http --port 8004 &
 PIDS+=($!)
 
+uv run fastmcp run tools/recruitment_orchestrator_server.py:mcp \
+    --transport streamable-http --port 8000 &
+PIDS+=($!)
+
 echo "Aguardando servidores MCP ficarem prontos..."
 sleep 4
 
@@ -48,6 +52,7 @@ PIDS+=($!)
 echo ""
 echo "Todos os serviços estão no ar:"
 echo "  AgentOS          → http://localhost:7777"
+echo "  orchestrator     → http://localhost:8000/mcp  ← endpoint para a LiGiaPro"
 echo "  job-opening      → http://localhost:8001/mcp"
 echo "  process-mgmt     → http://localhost:8002/mcp"
 echo "  candidate        → http://localhost:8003/mcp"

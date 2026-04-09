@@ -10,30 +10,53 @@
 
     # ── MCP servers ──────────────────────────────────────────────────────────
     # handle_path strip o prefixo antes de repassar ao container.
-    # O FastMCP sempre serve em /mcp, então o rewrite garante o path correto.
+    # O FastMCP serve em /mcp; o rewrite garante o path correto após o strip.
+    #
+    # flush_interval -1  →  desabilita buffering de resposta.
+    #                        Obrigatório para SSE (text/event-stream) funcionar:
+    #                        o MCP streamable-http usa SSE em tools/call para
+    #                        respostas de longa duração. Sem isso, o Caddy
+    #                        acumula o stream e a LiGiaPro trava esperando dados.
+
+    handle_path /mcp/recruitment* {
+        rewrite * /mcp
+        reverse_proxy mcp-orchestrator:8000 {
+            flush_interval -1
+        }
+    }
 
     handle_path /mcp/job-opening* {
         rewrite * /mcp
-        reverse_proxy mcp-job-opening:8001
+        reverse_proxy mcp-job-opening:8001 {
+            flush_interval -1
+        }
     }
 
     handle_path /mcp/process-management* {
         rewrite * /mcp
-        reverse_proxy mcp-process-management:8002
+        reverse_proxy mcp-process-management:8002 {
+            flush_interval -1
+        }
     }
 
     handle_path /mcp/candidate-screening* {
         rewrite * /mcp
-        reverse_proxy mcp-candidate-screening:8003
+        reverse_proxy mcp-candidate-screening:8003 {
+            flush_interval -1
+        }
     }
 
     handle_path /mcp/scheduling* {
         rewrite * /mcp
-        reverse_proxy mcp-scheduling:8004
+        reverse_proxy mcp-scheduling:8004 {
+            flush_interval -1
+        }
     }
 
     # ── AgentOS (chat backend) ────────────────────────────────────────────────
     handle {
-        reverse_proxy agentos:7777
+        reverse_proxy agentos:7777 {
+            flush_interval -1
+        }
     }
 }

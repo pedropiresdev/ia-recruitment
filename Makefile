@@ -23,6 +23,7 @@ infra-up:
 	@echo ""
 	@echo "Serviços no ar:"
 	@echo "  Caddy (entry)    → http://localhost"
+	@echo "  orchestrator     → http://localhost/mcp/recruitment  ← endpoint para a LiGiaPro"
 	@echo "  job-opening      → http://localhost/mcp/job-opening"
 	@echo "  process-mgmt     → http://localhost/mcp/process-management"
 	@echo "  candidate        → http://localhost/mcp/candidate-screening"
@@ -136,7 +137,7 @@ fix:
 
 status:
 	@echo "Portas em uso:"
-	@ss -tlnp 2>/dev/null | grep -E "7777|800[1-4]|5432|5050" || echo "  Nenhum serviço detectado"
+	@ss -tlnp 2>/dev/null | grep -E "7777|800[0-4]|5432|5050" || echo "  Nenhum serviço detectado"
 
 help:
 	@echo ""
@@ -147,7 +148,7 @@ help:
 	@echo "    make install-dev       Instala dependências + dev (pytest, ruff)"
 	@echo ""
 	@echo "  Infraestrutura completa"
-	@echo "    make infra-up          Build e sobe tudo (MCP servers + AgentOS + DB)"
+	@echo "    make infra-up          Build e sobe tudo (orchestrator + MCP servers + AgentOS + DB)"
 	@echo "    make infra-down        Para e remove todos os containers"
 	@echo "    make infra-logs        Logs de todos os serviços em tempo real"
 	@echo "    make infra-rebuild     Recria todos os containers com rebuild"
@@ -168,7 +169,7 @@ help:
 	@echo "    make seed              Popula o banco com dados fictícios"
 	@echo ""
 	@echo "  Servidores"
-	@echo "    make start             Sobe MCP servers (8001-8004) + AgentOS (7777)"
+	@echo "    make start             Sobe orchestrator (8000) + MCP servers (8001-8004) + AgentOS (7777)"
 	@echo "    make stop              Encerra todos os serviços"
 	@echo "    make restart           stop + start"
 	@echo "    make status            Mostra portas em uso"

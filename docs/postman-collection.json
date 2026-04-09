@@ -1,0 +1,634 @@
+{
+  "info": {
+    "_postman_id": "recruitment-agent-mcp",
+    "name": "Recruitment Agent — MCP",
+    "description": "Collection completa dos servidores MCP do agente de recrutamento.\nOrganizada por servidor. Cada pasta inclui initialize, tools/list e tools/call por ferramenta.\n\nVariável obrigatória: base_url (default: http://localhost)\nPara apontar ao ambiente remoto, troque por https://seu-agente.exemplo.com",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Job Opening",
+      "description": "Gerencia abertura de posições, geração de Job Description e vínculo com o ATS.\nEndpoint: {{base_url}}/mcp/job-opening",
+      "item": [
+
+        {
+          "name": "initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/job-opening", "host": ["{{base_url}}"], "path": ["mcp", "job-opening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": { \"tools\": {} },\n    \"clientInfo\": { \"name\": \"postman\", \"version\": \"1.0\" }\n  }\n}"
+            },
+            "description": "Handshake obrigatório. Deve ser chamado antes de tools/list e tools/call.\nRetorna: serverInfo, protocolVersion e capabilities do servidor."
+          }
+        },
+
+        {
+          "name": "tools/list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/job-opening", "host": ["{{base_url}}"], "path": ["mcp", "job-opening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"tools/list\",\n  \"params\": {}\n}"
+            },
+            "description": "Descobre todas as ferramentas expostas pelo servidor.\nRetorna: name, description e inputSchema de cada tool."
+          }
+        },
+
+        {
+          "name": "create_job_opening",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/job-opening", "host": ["{{base_url}}"], "path": ["mcp", "job-opening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"create_job_opening\",\n    \"arguments\": {\n      \"input\": {\n        \"position_title\": \"Desenvolvedor Backend Sênior\",\n        \"department\": \"Engenharia\",\n        \"seniority_level\": \"Sênior\",\n        \"deadline_days\": 30,\n        \"requirements\": \"Python, FastAPI, PostgreSQL, experiência com sistemas distribuídos\",\n        \"salary_range\": \"R$12.000 - R$16.000\",\n        \"requestor_name\": \"Ana Costa\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Inicia o fluxo unificado de abertura de posição e criação de vaga.\nObrigatórios: position_title, department, seniority_level, deadline_days, requestor_name.\nOpcionais: requirements, salary_range.\nNunca chamar sem seniority_level ou deadline_days preenchidos."
+          }
+        },
+
+        {
+          "name": "collect_opening_details",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/job-opening", "host": ["{{base_url}}"], "path": ["mcp", "job-opening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"collect_opening_details\",\n    \"arguments\": {\n      \"input\": {\n        \"opening_id\": \"op-001\",\n        \"missing_fields\": [\"seniority_level\", \"deadline_days\"]\n      }\n    }\n  }\n}"
+            },
+            "description": "Coleta dados faltantes de uma abertura em andamento via conversa natural.\nUsar quando create_job_opening não puder ser chamado por falta de campos obrigatórios.\nRetorna: campos coletados, campos restantes e se a coleta está completa."
+          }
+        },
+
+        {
+          "name": "generate_job_description",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/job-opening", "host": ["{{base_url}}"], "path": ["mcp", "job-opening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"generate_job_description\",\n    \"arguments\": {\n      \"input\": {\n        \"opening_id\": \"op-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Gera o rascunho da Job Description a partir dos dados coletados.\nApresentar ao recrutador para revisão antes de publicar no ATS."
+          }
+        },
+
+        {
+          "name": "link_opening_to_posting",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/job-opening", "host": ["{{base_url}}"], "path": ["mcp", "job-opening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"link_opening_to_posting\",\n    \"arguments\": {\n      \"input\": {\n        \"opening_id\": \"op-001\",\n        \"job_posting_id\": \"ats-vaga-42\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Vincula a abertura de posição à vaga no ATS com um ID único compartilhado.\nSempre chamar após a criação da vaga no ATS para manter rastreabilidade."
+          }
+        },
+
+        {
+          "name": "send_approval_reminder",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/job-opening", "host": ["{{base_url}}"], "path": ["mcp", "job-opening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"send_approval_reminder\",\n    \"arguments\": {\n      \"input\": {\n        \"opening_id\": \"op-001\",\n        \"requestor_name\": \"Ana Costa\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Envia lembrete ao gestor quando a abertura não for aprovada dentro do prazo.\nAcionar automaticamente ao atingir o deadline_days sem aprovação."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Process Management",
+      "description": "Monitora e gerencia processos seletivos: listagem, SLA, detalhes, timeline, candidatos por etapa e suspensão.\nEndpoint: {{base_url}}/mcp/process-management",
+      "item": [
+
+        {
+          "name": "initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": { \"tools\": {} },\n    \"clientInfo\": { \"name\": \"postman\", \"version\": \"1.0\" }\n  }\n}"
+            }
+          }
+        },
+
+        {
+          "name": "tools/list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"tools/list\",\n  \"params\": {}\n}"
+            }
+          }
+        },
+
+        {
+          "name": "list_processes",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"list_processes\",\n    \"arguments\": {\n      \"input\": {\n        \"status_filter\": \"em_andamento\",\n        \"sla_filter\": \"em_atraso\",\n        \"recruiter_id\": null\n      }\n    }\n  }\n}"
+            },
+            "description": "Lista processos seletivos com filtros opcionais.\nstatus_filter: em_aberto | em_andamento | suspenso | encerrado\nsla_filter: no_prazo | em_risco | em_atraso\nTodos os campos são opcionais — enviar null para não filtrar."
+          }
+        },
+
+        {
+          "name": "list_processes — sem filtros",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"list_processes\",\n    \"arguments\": {\n      \"input\": {}\n    }\n  }\n}"
+            },
+            "description": "Retorna todos os processos sem filtro."
+          }
+        },
+
+        {
+          "name": "get_sla_status",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_sla_status\",\n    \"arguments\": {\n      \"input\": {\n        \"process_id\": \"proc-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Verifica o SLA de um processo.\nprocess_id é opcional — omitir retorna status geral de todos os processos.\ndays_until_deadline negativo = processo atrasado."
+          }
+        },
+
+        {
+          "name": "get_process_summary",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_process_summary\",\n    \"arguments\": {\n      \"input\": {\n        \"process_id\": \"proc-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Resumo executivo rápido. Use antes de get_process_detail quando precisar de uma visão geral sem todos os dados."
+          }
+        },
+
+        {
+          "name": "get_process_detail",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_process_detail\",\n    \"arguments\": {\n      \"input\": {\n        \"process_id\": \"proc-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Detalhes completos: SLA, gargalo, ações recomendadas.\nSempre chamar em conjunto com get_process_timeline e get_candidates_by_stage."
+          }
+        },
+
+        {
+          "name": "get_process_timeline",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_process_timeline\",\n    \"arguments\": {\n      \"input\": {\n        \"process_id\": \"proc-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Histórico cronológico de etapas. Retorna bottleneck_stage quando identificado."
+          }
+        },
+
+        {
+          "name": "get_candidates_by_stage",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_candidates_by_stage\",\n    \"arguments\": {\n      \"input\": {\n        \"process_id\": \"proc-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Candidatos agrupados por etapa: inscrito, triagem, entrevista, tecnico, proposta, contratado, reprovado, desistiu."
+          }
+        },
+
+        {
+          "name": "suspend_process",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"suspend_process\",\n    \"arguments\": {\n      \"input\": {\n        \"process_id\": \"proc-001\",\n        \"suspension_reason\": \"Posição congelada por reestruturação do departamento de Engenharia\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Suspende um processo seletivo.\nsuspension_reason é OBRIGATÓRIO e nunca pode ser vazio ou genérico.\nSolicitar motivo ao recrutador antes de chamar."
+          }
+        },
+
+        {
+          "name": "get_overdue_sla_processes",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/process-management", "host": ["{{base_url}}"], "path": ["mcp", "process-management"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_overdue_sla_processes\",\n    \"arguments\": {\n      \"input\": {\n        \"days_ahead\": 2\n      }\n    }\n  }\n}"
+            },
+            "description": "Lista processos com SLA vencido e os que vencem nos próximos days_ahead dias.\nDefault days_ahead = 2. Retorna overdue_processes + at_risk_processes + total_critical."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Candidate Screening",
+      "description": "Realiza triagem de candidatos, movimentação de etapas e consulta de perfis.\nEndpoint: {{base_url}}/mcp/candidate-screening",
+      "item": [
+
+        {
+          "name": "initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/candidate-screening", "host": ["{{base_url}}"], "path": ["mcp", "candidate-screening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": { \"tools\": {} },\n    \"clientInfo\": { \"name\": \"postman\", \"version\": \"1.0\" }\n  }\n}"
+            }
+          }
+        },
+
+        {
+          "name": "tools/list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/candidate-screening", "host": ["{{base_url}}"], "path": ["mcp", "candidate-screening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"tools/list\",\n  \"params\": {}\n}"
+            }
+          }
+        },
+
+        {
+          "name": "screen_candidate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/candidate-screening", "host": ["{{base_url}}"], "path": ["mcp", "candidate-screening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"screen_candidate\",\n    \"arguments\": {\n      \"input\": {\n        \"candidate_id\": \"cand-001\",\n        \"process_id\": \"proc-001\",\n        \"resume_text\": \"Engenheiro de Software com 7 anos de experiência em Python, FastAPI e arquitetura de microsserviços. Liderou migração de monolito para microsserviços na empresa anterior.\",\n        \"notes\": \"Candidato indicado pelo gestor. Perfil sênior confirmado em entrevista inicial.\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Realiza triagem com base no currículo e critérios da vaga.\nRetorna recommendation: aprovar | reprovar | pendente\nRetorna score de 0 a 10 (opcional) e justificativa."
+          }
+        },
+
+        {
+          "name": "screen_candidate — sem currículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/candidate-screening", "host": ["{{base_url}}"], "path": ["mcp", "candidate-screening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"screen_candidate\",\n    \"arguments\": {\n      \"input\": {\n        \"candidate_id\": \"cand-001\",\n        \"process_id\": \"proc-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Triagem mínima — sem resume_text nem notes. O sistema usa os dados já cadastrados no processo."
+          }
+        },
+
+        {
+          "name": "move_candidate_stage",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/candidate-screening", "host": ["{{base_url}}"], "path": ["mcp", "candidate-screening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"move_candidate_stage\",\n    \"arguments\": {\n      \"input\": {\n        \"candidate_id\": \"cand-001\",\n        \"process_id\": \"proc-001\",\n        \"target_stage\": \"entrevista\",\n        \"reason\": \"Aprovado na triagem técnica com score 8.5\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Move candidato para nova etapa.\ntarget_stage válidos: inscrito | triagem | entrevista | tecnico | proposta | contratado | reprovado | desistiu\nConfirmar com o recrutador antes de mover para 'contratado' ou 'reprovado' (irreversível)."
+          }
+        },
+
+        {
+          "name": "get_candidate_profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/candidate-screening", "host": ["{{base_url}}"], "path": ["mcp", "candidate-screening"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_candidate_profile\",\n    \"arguments\": {\n      \"input\": {\n        \"candidate_id\": \"cand-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Retorna perfil completo: nome, e-mail, telefone, etapa atual, days_in_stage e data de inscrição.\nConsultar antes de tomar decisões de movimentação ou agendamento."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Interview Scheduling",
+      "description": "Agenda, remarca e cancela entrevistas. Gerencia disponibilidade de entrevistadores.\nEndpoint: {{base_url}}/mcp/scheduling",
+      "item": [
+
+        {
+          "name": "initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2024-11-05\",\n    \"capabilities\": { \"tools\": {} },\n    \"clientInfo\": { \"name\": \"postman\", \"version\": \"1.0\" }\n  }\n}"
+            }
+          }
+        },
+
+        {
+          "name": "tools/list",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"tools/list\",\n  \"params\": {}\n}"
+            }
+          }
+        },
+
+        {
+          "name": "get_scheduling_options",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_scheduling_options\",\n    \"arguments\": {}\n  }\n}"
+            },
+            "description": "Retorna entrevistadores disponíveis e tipos de entrevista.\nSEMPRE chamar antes de schedule_interview para obter IDs válidos de entrevistadores."
+          }
+        },
+
+        {
+          "name": "get_available_slots",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_available_slots\",\n    \"arguments\": {\n      \"input\": {\n        \"interviewer_id\": \"int-001\",\n        \"date_from\": \"2026-04-01\",\n        \"date_to\": \"2026-04-07\",\n        \"duration_minutes\": 60\n      }\n    }\n  }\n}"
+            },
+            "description": "Retorna horários disponíveis do entrevistador no período.\nSempre consultar antes de agendar ou remarcar.\nduration_minutes default = 60."
+          }
+        },
+
+        {
+          "name": "schedule_interview",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"schedule_interview\",\n    \"arguments\": {\n      \"input\": {\n        \"candidate_id\": \"cand-001\",\n        \"process_id\": \"proc-001\",\n        \"interviewer_id\": \"int-001\",\n        \"proposed_datetime\": \"2026-04-03T14:00\",\n        \"interview_type\": \"tecnica\",\n        \"duration_minutes\": 90,\n        \"notes\": \"Foco em arquitetura de sistemas distribuídos e experiência com Python\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Agenda uma entrevista.\ninterview_type válidos: tecnica | cultural | gestao | rh\nFluxo recomendado: get_scheduling_options → get_available_slots → schedule_interview"
+          }
+        },
+
+        {
+          "name": "reschedule_interview",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"reschedule_interview\",\n    \"arguments\": {\n      \"input\": {\n        \"interview_id\": \"int-sch-001\",\n        \"new_datetime\": \"2026-04-05T10:00\",\n        \"reason\": \"Candidato solicitou remarcação por conflito de agenda\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Remarca entrevista para nova data.\nreason é OBRIGATÓRIO para registro no histórico."
+          }
+        },
+
+        {
+          "name": "get_interviews_by_process",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_interviews_by_process\",\n    \"arguments\": {\n      \"input\": {\n        \"process_id\": \"proc-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Lista todas as entrevistas de um processo com status, tipo e candidatos."
+          }
+        },
+
+        {
+          "name": "get_interview",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get_interview\",\n    \"arguments\": {\n      \"input\": {\n        \"interview_id\": \"int-sch-001\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Retorna dados completos de uma entrevista específica pelo ID."
+          }
+        },
+
+        {
+          "name": "cancel_interview",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Accept",        "value": "application/json, text/event-stream" }
+            ],
+            "url": { "raw": "{{base_url}}/mcp/scheduling", "host": ["{{base_url}}"], "path": ["mcp", "scheduling"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"cancel_interview\",\n    \"arguments\": {\n      \"input\": {\n        \"interview_id\": \"int-sch-001\",\n        \"reason\": \"Processo suspenso por reestruturação do departamento\"\n      }\n    }\n  }\n}"
+            },
+            "description": "Cancela entrevista agendada.\nreason é OBRIGATÓRIO.\nSempre confirmar com o recrutador antes de cancelar."
+          }
+        }
+
+      ]
+    }
+
+  ]
+}

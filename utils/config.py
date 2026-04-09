@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     screening_server_url: str = "http://localhost:8003/mcp"
     scheduling_server_url: str = "http://localhost:8004/mcp"
 
+    # URL do orchestrator MCP server (exposto para a LiGiaPro)
+    orchestrator_server_url: str = "http://localhost:8000/mcp"
+
     # Configuração de SLA
     sla_alert_threshold_days: int = 2
 

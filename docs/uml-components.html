@@ -79,7 +79,7 @@
 </header>
 
 <div class="canvas">
-<svg viewBox="0 0 960 1130" width="960" height="1130" xmlns="http://www.w3.org/2000/svg"
+<svg viewBox="0 0 1200 1130" width="1200" height="1130" xmlns="http://www.w3.org/2000/svg"
      style="font-family:'Segoe UI',system-ui,sans-serif;">
 
   <defs>
@@ -119,8 +119,8 @@
   </defs>
 
   <!-- background -->
-  <rect width="960" height="1130" rx="16" fill="#0d1526"/>
-  <rect width="960" height="1130" rx="16" fill="url(#grid)"/>
+  <rect width="1200" height="1130" rx="16" fill="#0d1526"/>
+  <rect width="1200" height="1130" rx="16" fill="url(#grid)"/>
 
   <!-- ════════════════════════════════════════════════════════
        SYSTEM BOUNDARY
@@ -454,6 +454,69 @@
   <text x="490" y="1083" fill="#6b85a8" font-size="10" font-family="monospace">Alembic managed · pgAdmin :5050</text>
   <!-- tables -->
   <text x="262" y="1104" fill="#4a5e78" font-size="9" font-family="monospace">job_openings · selection_processes · process_timeline · candidates · interviews · interviewers</text>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       EXTERNAL INTEGRATION BOUNDARY (LiGiaPro ecosystem)
+  ════════════════════════════════════════════════════════ -->
+  <!-- Dashed boundary for external system -->
+  <rect x="968" y="84" width="218" height="1032" rx="12"
+        fill="rgba(16,185,129,0.02)" stroke="#134e2e" stroke-width="1.5" stroke-dasharray="8,4"/>
+  <text x="984" y="102" fill="#155c37" font-size="11" font-style="italic">«external» LiGiaPro ecosystem</text>
+
+  <!-- ACTOR: LiGiaPro -->
+  <g transform="translate(1042, 14)">
+    <g transform="translate(0,0)" style="color:#34d399">
+      <use href="#actor-icon" style="color:#34d399"/>
+    </g>
+    <text x="20" y="10" fill="#34d399" font-size="11" font-weight="700">«actor»</text>
+    <text x="20" y="24" fill="#6ee7b7" font-size="12" font-weight="700">LiGiaPro</text>
+  </g>
+
+  <!-- LiGiaPro → Orchestrator arrow -->
+  <path d="M 1077 50 V 298" stroke="#134e2e" stroke-width="1.5" stroke-dasharray="5,3"
+        fill="none" marker-end="url(#use-arrow)"/>
+  <text x="1083" y="180" fill="#134e2e" font-size="9">«call» MCP</text>
+  <text x="1083" y="192" fill="#134e2e" font-size="9">streamable-http</text>
+
+  <!-- ════════════════════════════════════════════════════════
+       Orchestrator MCP Server
+  ════════════════════════════════════════════════════════ -->
+  <rect x="974" y="298" width="210" height="160" rx="10"
+        fill="#0b1f14" stroke="#10b981" stroke-width="2"/>
+  <rect x="974" y="298" width="210" height="42" rx="10" fill="#052e16"/>
+  <rect x="974" y="326" width="210" height="14" fill="#052e16"/>
+  <g transform="translate(986, 308)" style="color:#34d399">
+    <use href="#comp-icon"/>
+  </g>
+  <text x="1006" y="315" fill="#6ee7b7" font-size="10" font-style="italic">«component»</text>
+  <text x="1006" y="330" fill="#a7f3d0" font-size="13" font-weight="700">Orchestrator</text>
+  <text x="984" y="352" fill="#34d399" font-size="9" font-family="monospace">FastMCP 2.0 · :8000/mcp</text>
+  <!-- provided interface -->
+  <circle cx="982" cy="368" r="4" fill="none" stroke="#10b981" stroke-width="1.2"/>
+  <line x1="986" y1="368" x2="1001" y2="368" stroke="#10b981" stroke-width="1"/>
+  <text x="1003" y="372" fill="#34d399" font-size="9">MCP Tool (1)</text>
+  <!-- tool detail -->
+  <text x="984" y="390" fill="#4a5e78" font-size="8.5" font-family="monospace">› handle_recruitment_message</text>
+  <text x="984" y="404" fill="#4a5e78" font-size="8.5" font-family="monospace">  (message, session_id) → str</text>
+  <!-- required interface: RecruitmentAgent -->
+  <path d="M 1173 440 A 5 5 0 0 1 1173 430" fill="none" stroke="#f59e0b" stroke-width="1.2"/>
+  <line x1="1161" y1="435" x2="1173" y2="435" stroke="#f59e0b" stroke-width="1"/>
+  <text x="984" y="439" fill="#f59e0b" font-size="8.5" font-family="monospace">RecruitmentAgent</text>
+  <!-- note: PostgresDb sessions -->
+  <rect x="984" y="444" width="192" height="14" rx="3" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.15)" stroke-width="1"/>
+  <text x="1080" y="454" text-anchor="middle" fill="#34d399" font-size="8.5" font-family="monospace">PostgresDb · session_id/user</text>
+
+  <!-- Orchestrator → RecruitmentAgent horizontal arrow -->
+  <path d="M 974 478 H 810" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"
+        fill="none" marker-end="url(#use-arrow)"/>
+  <rect x="860" y="456" width="100" height="20" rx="3" fill="#111e35" stroke="#1c2f4a" stroke-width="1"/>
+  <text x="910" y="468" text-anchor="middle" fill="#fbbf24" font-size="8.5" font-family="monospace">make_agent(db)</text>
+
+  <!-- Caddy route note -->
+  <rect x="974" y="472" width="210" height="22" rx="4"
+        fill="rgba(16,185,129,0.04)" stroke="#134e2e" stroke-width="1"/>
+  <text x="1079" y="487" text-anchor="middle" fill="#34d399" font-size="9" font-family="monospace">Caddy: /mcp/recruitment</text>
 
 </svg>
 </div>

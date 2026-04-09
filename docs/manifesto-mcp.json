@@ -1,127 +1,288 @@
 {
   "agent": {
-    "name": "Agente de Recrutamento",
-    "description": "Agente especializado em recrutamento e seleção. Gerencia o ciclo completo de contratação: abertura de vagas, triagem de candidatos, acompanhamento de processos seletivos com SLA e agendamento de entrevistas.",
-    "version": "0.1.0",
+    "name": "recruitment-agent",
+    "version": "1.0.0",
+    "description": "Agente de recrutamento da LG. Gerencia abertura de vagas, triagem de candidatos, processos seletivos e agendamento de entrevistas.",
+    "base_url": "https://seu-agente.exemplo.com",
     "transport": "streamable-http",
-    "protocol": "MCP 2025-03-26"
+    "contact": "recrutamento@lggo.com.br"
+  },
+
+  "$defs": {
+    "ProcessStatus": {
+      "type": "string",
+      "enum": ["em_aberto", "em_andamento", "suspenso", "encerrado"],
+      "description": "Status de um processo seletivo"
+    },
+    "SLAStatus": {
+      "type": "string",
+      "enum": ["no_prazo", "em_risco", "em_atraso"],
+      "description": "Status do SLA de um processo seletivo"
+    },
+    "CandidateStage": {
+      "type": "string",
+      "enum": ["inscrito", "triagem", "entrevista", "tecnico", "proposta", "contratado", "reprovado", "desistiu"],
+      "description": "Etapa do candidato no processo seletivo"
+    },
+    "QuickAction": {
+      "type": "object",
+      "description": "Ação rápida recomendada com prompt pré-definido",
+      "properties": {
+        "label":  { "type": "string", "description": "Rótulo do botão de ação rápida" },
+        "prompt": { "type": "string", "description": "Prompt enviado ao agente ao acionar a ação" }
+      },
+      "required": ["label", "prompt"]
+    },
+    "ProcessSummary": {
+      "type": "object",
+      "description": "Resumo de um processo seletivo",
+      "properties": {
+        "process_id":             { "type": "string" },
+        "job_title":              { "type": "string" },
+        "department":             { "type": "string" },
+        "recruiter_name":         { "type": "string" },
+        "status":                 { "$ref": "#/$defs/ProcessStatus" },
+        "sla_status":             { "$ref": "#/$defs/SLAStatus" },
+        "sla_deadline_date":      { "type": "string", "description": "Data limite no formato YYYY-MM-DD" },
+        "days_since_last_update": { "type": "integer" },
+        "open_candidates_count":  { "type": "integer" }
+      },
+      "required": ["process_id", "job_title", "department", "recruiter_name", "status", "sla_status", "sla_deadline_date", "days_since_last_update", "open_candidates_count"]
+    },
+    "TimelineEvent": {
+      "type": "object",
+      "description": "Evento no histórico cronológico de um processo",
+      "properties": {
+        "stage": { "type": "string" },
+        "date":  { "type": "string", "description": "Data no formato YYYY-MM-DD" },
+        "actor": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["stage", "date", "actor"]
+    },
+    "CandidateSummary": {
+      "type": "object",
+      "properties": {
+        "candidate_id":  { "type": "string" },
+        "full_name":     { "type": "string" },
+        "current_stage": { "type": "string" },
+        "days_in_stage": { "type": "integer" }
+      },
+      "required": ["candidate_id", "full_name", "current_stage", "days_in_stage"]
+    },
+    "CandidatesByStage": {
+      "type": "object",
+      "properties": {
+        "stage_name": { "type": "string" },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/CandidateSummary" } }
+      },
+      "required": ["stage_name", "candidates"]
+    },
+    "CandidateProfile": {
+      "type": "object",
+      "properties": {
+        "candidate_id":  { "type": "string" },
+        "full_name":     { "type": "string" },
+        "email":         { "type": "string" },
+        "phone":         { "type": "string" },
+        "current_stage": { "$ref": "#/$defs/CandidateStage" },
+        "process_id":    { "type": "string" },
+        "days_in_stage": { "type": "integer" },
+        "applied_at":    { "type": "string", "description": "Data de inscrição no formato YYYY-MM-DD" }
+      },
+      "required": ["candidate_id", "full_name", "email", "current_stage", "process_id", "days_in_stage", "applied_at"]
+    },
+    "TimeSlot": {
+      "type": "object",
+      "properties": {
+        "start_datetime": { "type": "string", "description": "Início do horário disponível (ISO 8601)" },
+        "end_datetime":   { "type": "string", "description": "Fim do horário disponível (ISO 8601)" }
+      },
+      "required": ["start_datetime", "end_datetime"]
+    },
+    "InterviewDetail": {
+      "type": "object",
+      "properties": {
+        "interview_id":        { "type": "string" },
+        "candidate_id":        { "type": "string" },
+        "candidate_name":      { "type": "string" },
+        "process_id":          { "type": "string" },
+        "interviewer_id":      { "type": "string" },
+        "interview_type":      { "type": "string" },
+        "scheduled_datetime":  { "type": "string", "description": "ISO 8601" },
+        "duration_minutes":    { "type": "integer" },
+        "status":              { "type": "string", "enum": ["agendada", "cancelada", "realizada"] },
+        "notes":               { "type": "string" },
+        "cancellation_reason": { "type": "string" },
+        "reschedule_reason":   { "type": "string" }
+      },
+      "required": ["interview_id", "candidate_id", "candidate_name", "process_id", "interviewer_id", "interview_type", "scheduled_datetime", "duration_minutes", "status"]
+    },
+    "InterviewerInfo": {
+      "type": "object",
+      "properties": {
+        "interviewer_id": { "type": "string" },
+        "name":           { "type": "string" },
+        "role":           { "type": "string" },
+        "department":     { "type": "string" }
+      },
+      "required": ["interviewer_id", "name", "role", "department"]
+    },
+    "InterviewTypeInfo": {
+      "type": "object",
+      "properties": {
+        "interview_type": { "type": "string" },
+        "label":          { "type": "string" },
+        "description":    { "type": "string" }
+      },
+      "required": ["interview_type", "label", "description"]
+    }
   },
 
   "servers": [
     {
+      "name": "recruitment-orchestrator",
+      "description": "Gateway MCP do agente de recrutamento para a LiGiaPro. Expõe uma única tool de linguagem natural que internamente orquestra os 4 MCP servers de domínio (job-opening, process-management, candidate-screening, interview-scheduling). Mantém histórico de conversa por session_id persistido no PostgreSQL.",
+      "endpoint": "https://seu-agente.exemplo.com/mcp/recruitment",
+      "tools": [
+        {
+          "name": "handle_recruitment_message",
+          "description": "Processa uma mensagem em linguagem natural para o agente de recrutamento. Mantém histórico de conversa por session_id — use o identificador do usuário ou da conversa na LiGiaPro para garantir continuidade entre mensagens. A resposta pode conter texto em markdown e blocos JSON com prefixo __widget para renderização de dashboards, boards de candidatos, cards de entrevista etc.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "message":    { "type": "string", "description": "Mensagem do usuário em linguagem natural (PT-BR)" },
+              "session_id": { "type": "string", "description": "Identificador único da sessão/conversa (ex: user_id da LiGiaPro). Garante continuidade do histórico entre chamadas." }
+            },
+            "required": ["message", "session_id"]
+          },
+          "outputSchema": {
+            "type": "string",
+            "description": "Resposta do agente em markdown, podendo incluir blocos JSON de widget no formato {\"__widget\": \"<tipo>\", ...}"
+          }
+        }
+      ]
+    },
+
+    {
       "name": "job-opening-server",
-      "description": "Gerencia o fluxo de abertura de posições e criação de vagas no ATS. Coleta dados, gera Job Descriptions e vincula aberturas a vagas com ID único.",
-      "endpoint": "/mcp/job-opening",
+      "description": "Gerencia abertura de posições, geração de Job Description e vínculo com o ATS.",
+      "endpoint": "https://seu-agente.exemplo.com/mcp/job-opening",
       "tools": [
         {
           "name": "create_job_opening",
           "description": "Inicia o fluxo unificado de abertura de posição e criação de vaga. Use quando o agente detectar uma solicitação de contratação. Coleta dados da posição, gera a Job Description e vincula a vaga no ATS com um ID único. Nunca chamar com seniority_level ou deadline_days vazios.",
-          "input": {
+          "inputSchema": {
             "type": "object",
-            "required": ["position_title", "department", "seniority_level", "deadline_days", "requestor_name"],
             "properties": {
-              "position_title":   { "type": "string",  "description": "Título da posição a ser aberta" },
-              "department":       { "type": "string",  "description": "Departamento solicitante da contratação" },
-              "seniority_level":  { "type": "string",  "description": "Nível de senioridade: Júnior, Pleno, Sênior, Especialista, Gestão" },
-              "deadline_days":    { "type": "integer", "description": "Prazo em dias para preenchimento da vaga" },
-              "requirements":     { "type": "string",  "description": "Requisitos técnicos e comportamentais da posição", "nullable": true },
-              "salary_range":     { "type": "string",  "description": "Faixa salarial esperada, ex: 'R$8.000 - R$12.000'", "nullable": true },
-              "requestor_name":   { "type": "string",  "description": "Nome do gestor que está solicitando a abertura" }
-            }
+              "position_title":  { "type": "string",  "description": "Título da posição a ser aberta" },
+              "department":      { "type": "string",  "description": "Departamento solicitante da contratação" },
+              "seniority_level": { "type": "string",  "enum": ["Júnior", "Pleno", "Sênior", "Especialista", "Gestão"], "description": "Nível de senioridade" },
+              "deadline_days":   { "type": "integer", "description": "Prazo em dias para preenchimento da vaga" },
+              "requirements":    { "type": "string",  "description": "Requisitos técnicos e comportamentais (opcional)" },
+              "salary_range":    { "type": "string",  "description": "Faixa salarial esperada, ex: 'R$8.000 - R$12.000' (opcional)" },
+              "requestor_name":  { "type": "string",  "description": "Nome do gestor solicitante" }
+            },
+            "required": ["position_title", "department", "seniority_level", "deadline_days", "requestor_name"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
               "opening_id":            { "type": "string", "description": "ID único da abertura de posição" },
-              "job_posting_id":        { "type": "string", "description": "ID da vaga criada no ATS, vinculada à abertura" },
+              "job_posting_id":        { "type": "string", "description": "ID da vaga criada no ATS" },
               "job_description_draft": { "type": "string", "description": "Rascunho da Job Description gerado automaticamente" },
               "status":                { "type": "string", "enum": ["success", "error"] },
-              "message":               { "type": "string", "description": "Mensagem legível com o resultado da operação" }
-            }
+              "message":               { "type": "string" }
+            },
+            "required": ["opening_id", "job_posting_id", "job_description_draft", "status", "message"]
           }
         },
         {
           "name": "collect_opening_details",
-          "description": "Coleta os dados faltantes de uma abertura de posição em andamento via conversa natural. Use quando create_job_opening não puder ser chamado por falta de campos obrigatórios como seniority_level ou deadline_days.",
-          "input": {
+          "description": "Coleta dados faltantes de uma abertura de posição em andamento via conversa natural. Use quando create_job_opening não puder ser chamado por falta de campos obrigatórios.",
+          "inputSchema": {
             "type": "object",
-            "required": ["opening_id", "missing_fields"],
             "properties": {
-              "opening_id":     { "type": "string",              "description": "ID da abertura de posição em andamento" },
-              "missing_fields": { "type": "array", "items": { "type": "string" }, "description": "Lista de campos que precisam ser coletados via conversa" }
-            }
+              "opening_id":     { "type": "string", "description": "ID da abertura de posição em andamento" },
+              "missing_fields": { "type": "array",  "items": { "type": "string" }, "description": "Lista de campos que precisam ser coletados" }
+            },
+            "required": ["opening_id", "missing_fields"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "opening_id":        { "type": "string",  "description": "ID da abertura de posição" },
-              "collected_fields":  { "type": "object",  "description": "Campos coletados e seus valores" },
-              "remaining_fields":  { "type": "array", "items": { "type": "string" }, "description": "Campos que ainda precisam ser coletados" },
-              "is_complete":       { "type": "boolean", "description": "Indica se todos os campos obrigatórios foram coletados" },
-              "message":           { "type": "string",  "description": "Mensagem legível com o resultado da coleta" }
-            }
+              "opening_id":       { "type": "string" },
+              "collected_fields": { "type": "object", "description": "Campos coletados e seus valores" },
+              "remaining_fields": { "type": "array",  "items": { "type": "string" } },
+              "is_complete":      { "type": "boolean" },
+              "message":          { "type": "string" }
+            },
+            "required": ["opening_id", "collected_fields", "remaining_fields", "is_complete", "message"]
           }
         },
         {
           "name": "generate_job_description",
-          "description": "Gera o rascunho da Job Description a partir dos dados coletados da abertura de posição. Use após coletar todos os campos obrigatórios. O rascunho deve ser apresentado ao recrutador para revisão antes da publicação.",
-          "input": {
+          "description": "Gera o rascunho da Job Description a partir dos dados coletados. Apresentar ao recrutador para revisão antes da publicação.",
+          "inputSchema": {
             "type": "object",
-            "required": ["opening_id"],
             "properties": {
-              "opening_id": { "type": "string", "description": "ID da abertura de posição para gerar a Job Description" }
-            }
+              "opening_id": { "type": "string", "description": "ID da abertura de posição" }
+            },
+            "required": ["opening_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "opening_id":       { "type": "string", "description": "ID da abertura de posição" },
-              "job_description":  { "type": "string", "description": "Rascunho completo da Job Description gerado" },
-              "status":           { "type": "string", "enum": ["success", "error"] },
-              "message":          { "type": "string", "description": "Mensagem legível com o resultado da operação" }
-            }
+              "opening_id":      { "type": "string" },
+              "job_description": { "type": "string", "description": "Rascunho completo da Job Description" },
+              "status":          { "type": "string", "enum": ["success", "error"] },
+              "message":         { "type": "string" }
+            },
+            "required": ["opening_id", "job_description", "status", "message"]
           }
         },
         {
           "name": "link_opening_to_posting",
-          "description": "Vincula a abertura de posição à vaga no ATS com um ID único compartilhado. Use para garantir rastreabilidade entre a solicitação de contratação e a vaga publicada. Sempre chamar após a criação da vaga no ATS.",
-          "input": {
+          "description": "Vincula a abertura de posição à vaga no ATS com um ID único compartilhado. Sempre chamar após a criação da vaga.",
+          "inputSchema": {
             "type": "object",
-            "required": ["opening_id", "job_posting_id"],
             "properties": {
               "opening_id":     { "type": "string", "description": "ID da abertura de posição" },
-              "job_posting_id": { "type": "string", "description": "ID da vaga no ATS a ser vinculada" }
-            }
+              "job_posting_id": { "type": "string", "description": "ID da vaga no ATS" }
+            },
+            "required": ["opening_id", "job_posting_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "opening_id":     { "type": "string", "description": "ID da abertura de posição" },
-              "job_posting_id": { "type": "string", "description": "ID da vaga no ATS vinculada" },
+              "opening_id":     { "type": "string" },
+              "job_posting_id": { "type": "string" },
               "status":         { "type": "string", "enum": ["success", "error"] },
-              "message":        { "type": "string", "description": "Mensagem legível com o resultado do vínculo" }
-            }
+              "message":        { "type": "string" }
+            },
+            "required": ["opening_id", "job_posting_id", "status", "message"]
           }
         },
         {
           "name": "send_approval_reminder",
-          "description": "Envia um lembrete ao gestor quando a abertura de posição não for aprovada dentro do prazo. Use automaticamente quando o prazo em deadline_days for atingido sem aprovação.",
-          "input": {
+          "description": "Envia lembrete ao gestor quando a abertura não for aprovada dentro do prazo. Acionar automaticamente ao atingir deadline_days.",
+          "inputSchema": {
             "type": "object",
-            "required": ["opening_id", "requestor_name"],
             "properties": {
-              "opening_id":     { "type": "string", "description": "ID da abertura de posição sem aprovação" },
+              "opening_id":     { "type": "string", "description": "ID da abertura sem aprovação" },
               "requestor_name": { "type": "string", "description": "Nome do gestor para envio do lembrete" }
-            }
+            },
+            "required": ["opening_id", "requestor_name"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "opening_id":    { "type": "string",  "description": "ID da abertura de posição" },
-              "reminder_sent": { "type": "boolean", "description": "Indica se o lembrete foi enviado" },
-              "status":        { "type": "string",  "enum": ["success", "error"] },
-              "message":       { "type": "string",  "description": "Mensagem legível com o resultado do envio" }
-            }
+              "opening_id":    { "type": "string" },
+              "reminder_sent": { "type": "boolean" },
+              "status":        { "type": "string", "enum": ["success", "error"] },
+              "message":       { "type": "string" }
+            },
+            "required": ["opening_id", "reminder_sent", "status", "message"]
           }
         }
       ]
@@ -129,183 +290,187 @@
 
     {
       "name": "process-management-server",
-      "description": "Consulta e gerencia processos seletivos. Fornece visão de painel, status de SLA, timeline de etapas, candidatos por fase e ações de suspensão.",
-      "endpoint": "/mcp/process-management",
+      "description": "Monitora e gerencia processos seletivos: listagem, SLA, detalhes, timeline, candidatos por etapa e suspensão.",
+      "endpoint": "https://seu-agente.exemplo.com/mcp/process-management",
       "tools": [
         {
           "name": "list_processes",
-          "description": "Lista os processos seletivos com filtros por status e SLA. Use para responder 'quais vagas estão abertas?' ou 'quantos processos estão em andamento?'",
-          "input": {
+          "description": "Lista processos seletivos com filtros por status e SLA. Use para responder 'quais vagas estão abertas?' ou 'quantos processos em andamento?'",
+          "inputSchema": {
             "type": "object",
-            "required": [],
             "properties": {
-              "status_filter":  { "type": "string", "enum": ["em_aberto", "em_andamento", "suspenso", "encerrado"], "description": "Filtrar por status do processo", "nullable": true },
-              "sla_filter":     { "type": "string", "enum": ["no_prazo", "em_risco", "em_atraso"],                  "description": "Filtrar por status de SLA", "nullable": true },
-              "recruiter_id":   { "type": "string", "description": "Filtrar por recrutador responsável", "nullable": true }
-            }
+              "status_filter": { "$ref": "#/$defs/ProcessStatus", "description": "Filtrar por status do processo (opcional)" },
+              "sla_filter":    { "$ref": "#/$defs/SLAStatus",    "description": "Filtrar por status de SLA (opcional)" },
+              "recruiter_id":  { "type": "string",               "description": "Filtrar por recrutador responsável (opcional)" }
+            },
+            "required": []
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "processes": {
-                "type": "array",
-                "items": { "$ref": "#/definitions/ProcessSummary" },
-                "description": "Lista de processos seletivos filtrados"
-              },
-              "total":   { "type": "integer", "description": "Total de processos retornados" },
-              "message": { "type": "string",  "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "processes": { "type": "array", "items": { "$ref": "#/$defs/ProcessSummary" } },
+              "total":     { "type": "integer" },
+              "message":   { "type": "string" }
+            },
+            "required": ["processes", "total", "message"]
           }
         },
         {
           "name": "get_sla_status",
-          "description": "Verifica o status de SLA de um processo específico ou de todos os processos. Use para identificar quais processos estão em risco ou em atraso.",
-          "input": {
+          "description": "Verifica o status de SLA de um processo específico ou de todos. Retorna dias restantes (negativo se atrasado).",
+          "inputSchema": {
             "type": "object",
-            "required": [],
             "properties": {
-              "process_id": { "type": "string", "description": "ID do processo para verificar SLA. Se omitido, retorna todos.", "nullable": true }
-            }
+              "process_id": { "type": "string", "description": "ID do processo. Se omitido, retorna todos" }
+            },
+            "required": []
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "process_id":          { "type": "string",  "description": "ID do processo consultado", "nullable": true },
-              "sla_status":          { "type": "string",  "enum": ["no_prazo", "em_risco", "em_atraso"] },
-              "days_until_deadline": { "type": "integer", "description": "Dias restantes até o vencimento (negativo se atrasado)" },
-              "message":             { "type": "string",  "description": "Mensagem legível com o status do SLA" }
-            }
+              "process_id":          { "type": "string" },
+              "sla_status":          { "$ref": "#/$defs/SLAStatus" },
+              "days_until_deadline": { "type": "integer", "description": "Negativo se já vencido" },
+              "message":             { "type": "string" }
+            },
+            "required": ["sla_status", "days_until_deadline", "message"]
           }
         },
         {
           "name": "get_process_summary",
-          "description": "Retorna um resumo executivo de um processo seletivo com ações recomendadas. Use para respostas rápidas sem os detalhes completos de candidatos e timeline.",
-          "input": {
+          "description": "Retorna resumo executivo de um processo com ações recomendadas. Use para respostas rápidas sem os detalhes completos.",
+          "inputSchema": {
             "type": "object",
-            "required": ["process_id"],
             "properties": {
-              "process_id": { "type": "string", "description": "ID único do processo seletivo" }
-            }
+              "process_id": { "type": "string" }
+            },
+            "required": ["process_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "process_id":          { "type": "string", "description": "ID do processo seletivo" },
-              "summary":             { "type": "string", "description": "Resumo executivo do processo em texto estruturado" },
-              "sla_status":          { "type": "string", "enum": ["no_prazo", "em_risco", "em_atraso"] },
-              "recommended_actions": { "type": "array", "items": { "$ref": "#/definitions/QuickAction" } },
-              "message":             { "type": "string", "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "process_id":          { "type": "string" },
+              "summary":             { "type": "string", "description": "Resumo executivo em texto estruturado" },
+              "sla_status":          { "$ref": "#/$defs/SLAStatus" },
+              "recommended_actions": { "type": "array", "items": { "$ref": "#/$defs/QuickAction" } },
+              "message":             { "type": "string" }
+            },
+            "required": ["process_id", "summary", "sla_status", "recommended_actions", "message"]
           }
         },
         {
           "name": "get_process_detail",
-          "description": "Retorna detalhes completos de um processo seletivo. Sempre chamar em conjunto com get_process_timeline e get_candidates_by_stage para compor a resposta completa.",
-          "input": {
+          "description": "Retorna detalhes completos: candidatos, histórico, SLA e próximas ações. Chamar com get_process_timeline e get_candidates_by_stage.",
+          "inputSchema": {
             "type": "object",
-            "required": ["process_id"],
             "properties": {
-              "process_id": { "type": "string", "description": "ID único do processo seletivo" }
-            }
+              "process_id": { "type": "string" }
+            },
+            "required": ["process_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "process_id":             { "type": "string",  "description": "ID único do processo seletivo" },
-              "job_title":              { "type": "string",  "description": "Título da vaga" },
-              "department":             { "type": "string",  "description": "Departamento responsável" },
-              "recruiter_name":         { "type": "string",  "description": "Nome do recrutador responsável" },
-              "status":                 { "type": "string",  "enum": ["em_aberto", "em_andamento", "suspenso", "encerrado"] },
-              "sla_status":             { "type": "string",  "enum": ["no_prazo", "em_risco", "em_atraso"] },
-              "sla_deadline_date":      { "type": "string",  "description": "Data limite do SLA (YYYY-MM-DD)" },
-              "days_since_last_update": { "type": "integer", "description": "Dias desde a última atualização" },
-              "open_candidates_count":  { "type": "integer", "description": "Número de candidatos ativos" },
-              "bottleneck_description": { "type": "string",  "description": "Descrição do gargalo atual identificado no processo" },
-              "days_overdue":           { "type": "integer", "description": "Dias de atraso no SLA (0 se não está atrasado)" },
-              "recommended_actions":    { "type": "array",   "items": { "$ref": "#/definitions/QuickAction" } },
-              "message":                { "type": "string",  "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "process_id":             { "type": "string" },
+              "job_title":              { "type": "string" },
+              "department":             { "type": "string" },
+              "recruiter_name":         { "type": "string" },
+              "status":                 { "$ref": "#/$defs/ProcessStatus" },
+              "sla_status":             { "$ref": "#/$defs/SLAStatus" },
+              "sla_deadline_date":      { "type": "string", "description": "YYYY-MM-DD" },
+              "days_since_last_update": { "type": "integer" },
+              "open_candidates_count":  { "type": "integer" },
+              "bottleneck_description": { "type": "string" },
+              "days_overdue":           { "type": "integer", "description": "0 se não está atrasado" },
+              "recommended_actions":    { "type": "array", "items": { "$ref": "#/$defs/QuickAction" } },
+              "message":                { "type": "string" }
+            },
+            "required": ["process_id", "job_title", "department", "recruiter_name", "status", "sla_status", "sla_deadline_date", "days_since_last_update", "open_candidates_count", "bottleneck_description", "days_overdue", "recommended_actions", "message"]
           }
         },
         {
           "name": "get_process_timeline",
-          "description": "Retorna o histórico cronológico de etapas e datas de um processo. Use para identificar gargalos, calcular tempo entre etapas e detectar onde o processo parou. Sempre chamar em conjunto com get_process_detail.",
-          "input": {
+          "description": "Retorna o histórico cronológico de etapas e datas. Chamar com get_process_detail ao detalhar processo com SLA em atraso.",
+          "inputSchema": {
             "type": "object",
-            "required": ["process_id"],
             "properties": {
-              "process_id": { "type": "string", "description": "ID único do processo seletivo" }
-            }
+              "process_id": { "type": "string" }
+            },
+            "required": ["process_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "process_id":       { "type": "string", "description": "ID do processo seletivo" },
-              "timeline":         { "type": "array",  "items": { "$ref": "#/definitions/TimelineEvent" }, "description": "Histórico cronológico de etapas e datas" },
-              "bottleneck_stage": { "type": "string", "description": "Etapa identificada como gargalo no processo", "nullable": true },
-              "message":          { "type": "string", "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "process_id":       { "type": "string" },
+              "timeline":         { "type": "array", "items": { "$ref": "#/$defs/TimelineEvent" } },
+              "bottleneck_stage": { "type": "string", "description": "Etapa identificada como gargalo (opcional)" },
+              "message":          { "type": "string" }
+            },
+            "required": ["process_id", "timeline", "message"]
           }
         },
         {
           "name": "get_candidates_by_stage",
-          "description": "Retorna os candidatos agrupados por etapa de um processo. Use para responder 'quais candidatos estão aguardando retorno?' ou para montar a visão do funil. Sempre chamar em conjunto com get_process_detail.",
-          "input": {
+          "description": "Retorna candidatos agrupados por etapa. Chamar com get_process_detail ao detalhar um processo completo.",
+          "inputSchema": {
             "type": "object",
-            "required": ["process_id"],
             "properties": {
-              "process_id": { "type": "string", "description": "ID único do processo seletivo" }
-            }
+              "process_id": { "type": "string" }
+            },
+            "required": ["process_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "process_id":       { "type": "string",  "description": "ID do processo seletivo" },
-              "stages":           { "type": "array",   "items": { "$ref": "#/definitions/CandidatesByStage" }, "description": "Candidatos agrupados por etapa" },
-              "total_candidates": { "type": "integer", "description": "Total de candidatos no processo" },
-              "message":          { "type": "string",  "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "process_id":       { "type": "string" },
+              "stages":           { "type": "array", "items": { "$ref": "#/$defs/CandidatesByStage" } },
+              "total_candidates": { "type": "integer" },
+              "message":          { "type": "string" }
+            },
+            "required": ["process_id", "stages", "total_candidates", "message"]
           }
         },
         {
           "name": "suspend_process",
-          "description": "Suspende um processo seletivo. O motivo da suspensão é obrigatório — nunca chamar com suspension_reason vazio ou genérico. Sempre solicitar ao recrutador antes de executar.",
-          "input": {
+          "description": "Suspende um processo seletivo. Motivo obrigatório. Nunca chamar com suspension_reason vazio ou genérico.",
+          "inputSchema": {
             "type": "object",
-            "required": ["process_id", "suspension_reason"],
             "properties": {
-              "process_id":         { "type": "string", "description": "ID único do processo seletivo a ser suspenso" },
-              "suspension_reason":  { "type": "string", "description": "Motivo obrigatório da suspensão — nunca pode ser vazio" }
-            }
+              "process_id":        { "type": "string" },
+              "suspension_reason": { "type": "string", "description": "Motivo obrigatório — nunca pode ser vazio" }
+            },
+            "required": ["process_id", "suspension_reason"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "process_id":        { "type": "string", "description": "ID do processo suspenso" },
-              "status":            { "type": "string", "enum": ["em_aberto", "em_andamento", "suspenso", "encerrado"], "description": "Novo status do processo" },
-              "suspension_reason": { "type": "string", "description": "Motivo registrado da suspensão" },
-              "message":           { "type": "string", "description": "Mensagem legível com o resultado da operação" }
-            }
+              "process_id":        { "type": "string" },
+              "status":            { "$ref": "#/$defs/ProcessStatus" },
+              "suspension_reason": { "type": "string" },
+              "message":           { "type": "string" }
+            },
+            "required": ["process_id", "status", "suspension_reason", "message"]
           }
         },
         {
           "name": "get_overdue_sla_processes",
-          "description": "Lista os processos com SLA vencido ou a vencer nos próximos N dias. Use para monitoramento proativo de SLA e para sugerir ações corretivas ao recrutador.",
-          "input": {
+          "description": "Lista processos com SLA vencido ou a vencer nos próximos N dias. Use para monitoramento proativo de SLA.",
+          "inputSchema": {
             "type": "object",
-            "required": [],
             "properties": {
-              "days_ahead": { "type": "integer", "default": 2, "description": "Número de dias à frente para incluir processos com SLA a vencer" }
-            }
+              "days_ahead": { "type": "integer", "default": 2, "description": "Dias à frente para incluir processos em risco" }
+            },
+            "required": ["days_ahead"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "overdue_processes":  { "type": "array",   "items": { "$ref": "#/definitions/ProcessSummary" }, "description": "Processos com SLA vencido" },
-              "at_risk_processes":  { "type": "array",   "items": { "$ref": "#/definitions/ProcessSummary" }, "description": "Processos com SLA a vencer nos próximos dias" },
-              "total_critical":     { "type": "integer", "description": "Total de processos críticos (vencidos + em risco)" },
-              "message":            { "type": "string",  "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "overdue_processes": { "type": "array", "items": { "$ref": "#/$defs/ProcessSummary" }, "description": "Processos com SLA vencido" },
+              "at_risk_processes": { "type": "array", "items": { "$ref": "#/$defs/ProcessSummary" }, "description": "Processos com SLA a vencer nos próximos dias" },
+              "total_critical":    { "type": "integer" },
+              "message":           { "type": "string" }
+            },
+            "required": ["overdue_processes", "at_risk_processes", "total_critical", "message"]
           }
         }
       ]
@@ -313,76 +478,79 @@
 
     {
       "name": "candidate-screening-server",
-      "description": "Triagem e movimentação de candidatos no funil de seleção. Avalia aderência ao perfil, recomenda aprovação ou reprovação e gerencia a progressão de etapas.",
-      "endpoint": "/mcp/candidate-screening",
+      "description": "Realiza triagem de candidatos, movimentação de etapas e consulta de perfis.",
+      "endpoint": "https://seu-agente.exemplo.com/mcp/candidate-screening",
       "tools": [
         {
           "name": "screen_candidate",
-          "description": "Realiza a triagem de um candidato com base no currículo e nos critérios da vaga. Retorna recomendação (aprovar/reprovar/pendente) e justificativa detalhada.",
-          "input": {
+          "description": "Realiza triagem de um candidato com base no currículo e nos critérios da vaga. Retorna recomendação (aprovar/reprovar/pendente) e justificativa.",
+          "inputSchema": {
             "type": "object",
-            "required": ["candidate_id", "process_id"],
             "properties": {
               "candidate_id": { "type": "string", "description": "ID único do candidato" },
               "process_id":   { "type": "string", "description": "ID do processo seletivo" },
-              "resume_text":  { "type": "string", "description": "Texto do currículo do candidato", "nullable": true },
-              "notes":        { "type": "string", "description": "Anotações do recrutador sobre o candidato", "nullable": true }
-            }
+              "resume_text":  { "type": "string", "description": "Texto do currículo (opcional)" },
+              "notes":        { "type": "string", "description": "Anotações do recrutador (opcional)" }
+            },
+            "required": ["candidate_id", "process_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "candidate_id":   { "type": "string",  "description": "ID do candidato avaliado" },
-              "process_id":     { "type": "string",  "description": "ID do processo seletivo" },
-              "recommendation": { "type": "string",  "enum": ["aprovar", "reprovar", "pendente"] },
-              "justification":  { "type": "string",  "description": "Justificativa da recomendação em linguagem natural" },
-              "score":          { "type": "number",  "description": "Pontuação de aderência ao perfil (0 a 10)", "nullable": true },
-              "status":         { "type": "string",  "enum": ["success", "error"] },
-              "message":        { "type": "string",  "description": "Mensagem legível com o resultado da triagem" }
-            }
+              "candidate_id":   { "type": "string" },
+              "process_id":     { "type": "string" },
+              "recommendation": { "type": "string", "enum": ["aprovar", "reprovar", "pendente"] },
+              "justification":  { "type": "string" },
+              "score":          { "type": "number", "minimum": 0, "maximum": 10, "description": "Pontuação de aderência ao perfil (0–10)" },
+              "status":         { "type": "string", "enum": ["success", "error"] },
+              "message":        { "type": "string" }
+            },
+            "required": ["candidate_id", "process_id", "recommendation", "justification", "status", "message"]
           }
         },
         {
           "name": "move_candidate_stage",
-          "description": "Move um candidato para uma nova etapa do processo seletivo. Sempre confirmar com o recrutador antes de mover para etapas irreversíveis como 'contratado' ou 'reprovado'.",
-          "input": {
+          "description": "Move um candidato para uma nova etapa. Confirmar com o recrutador antes de etapas irreversíveis como 'contratado' ou 'reprovado'.",
+          "inputSchema": {
             "type": "object",
-            "required": ["candidate_id", "process_id", "target_stage"],
             "properties": {
-              "candidate_id": { "type": "string", "description": "ID do candidato a ser movido" },
-              "process_id":   { "type": "string", "description": "ID do processo seletivo" },
-              "target_stage": { "type": "string", "enum": ["inscrito", "triagem", "entrevista", "tecnico", "proposta", "contratado", "reprovado", "desistiu"], "description": "Etapa de destino do candidato" },
-              "reason":       { "type": "string", "description": "Motivo da movimentação de etapa", "nullable": true }
-            }
+              "candidate_id": { "type": "string" },
+              "process_id":   { "type": "string" },
+              "target_stage": { "$ref": "#/$defs/CandidateStage" },
+              "reason":       { "type": "string", "description": "Motivo da movimentação (opcional)" }
+            },
+            "required": ["candidate_id", "process_id", "target_stage"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "candidate_id":   { "type": "string", "description": "ID do candidato" },
-              "process_id":     { "type": "string", "description": "ID do processo seletivo" },
-              "previous_stage": { "type": "string", "description": "Etapa anterior do candidato" },
-              "current_stage":  { "type": "string", "description": "Nova etapa do candidato" },
+              "candidate_id":   { "type": "string" },
+              "process_id":     { "type": "string" },
+              "previous_stage": { "type": "string" },
+              "current_stage":  { "type": "string" },
               "status":         { "type": "string", "enum": ["success", "error"] },
-              "message":        { "type": "string", "description": "Mensagem legível com o resultado da movimentação" }
-            }
+              "message":        { "type": "string" }
+            },
+            "required": ["candidate_id", "process_id", "previous_stage", "current_stage", "status", "message"]
           }
         },
         {
           "name": "get_candidate_profile",
-          "description": "Retorna o perfil completo de um candidato, incluindo etapa atual e dados de contato. Use antes de tomar decisões de movimentação ou agendamento.",
-          "input": {
+          "description": "Retorna o perfil completo de um candidato. Consultar antes de tomar decisões de movimentação ou agendamento.",
+          "inputSchema": {
             "type": "object",
-            "required": ["candidate_id"],
             "properties": {
-              "candidate_id": { "type": "string", "description": "ID único do candidato" }
-            }
+              "candidate_id": { "type": "string" }
+            },
+            "required": ["candidate_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "profile": { "$ref": "#/definitions/CandidateProfile" },
-              "message": { "type": "string", "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "profile": { "$ref": "#/$defs/CandidateProfile" },
+              "message": { "type": "string" }
+            },
+            "required": ["profile", "message"]
           }
         }
       ]
@@ -390,258 +558,166 @@
 
     {
       "name": "interview-scheduling-server",
-      "description": "Agendamento e gestão de entrevistas. Consulta disponibilidade de entrevistadores, agenda, remarca e cancela entrevistas registrando motivos no histórico.",
-      "endpoint": "/mcp/scheduling",
+      "description": "Agenda, remarca e cancela entrevistas. Gerencia disponibilidade de entrevistadores e tipos de entrevista.",
+      "endpoint": "https://seu-agente.exemplo.com/mcp/scheduling",
       "tools": [
         {
-          "name": "get_scheduling_options",
-          "description": "Retorna a lista de entrevistadores disponíveis e os tipos de entrevista suportados. Use SEMPRE antes de agendar para apresentar as opções ao recrutador.",
-          "input": null,
-          "output": {
-            "type": "object",
-            "properties": {
-              "interviewers":     { "type": "array", "items": { "$ref": "#/definitions/InterviewerInfo" }, "description": "Lista de entrevistadores disponíveis" },
-              "interview_types":  { "type": "array", "items": { "$ref": "#/definitions/InterviewTypeInfo" }, "description": "Tipos de entrevista disponíveis" },
-              "message":          { "type": "string", "description": "Mensagem de contexto" }
-            }
-          }
-        },
-        {
-          "name": "get_available_slots",
-          "description": "Retorna os horários disponíveis de um entrevistador em um período. Use antes de agendar ou remarcar uma entrevista para apresentar opções ao recrutador.",
-          "input": {
-            "type": "object",
-            "required": ["interviewer_id", "date_from", "date_to"],
-            "properties": {
-              "interviewer_id":   { "type": "string",  "description": "ID do entrevistador para verificar disponibilidade" },
-              "date_from":        { "type": "string",  "description": "Data inicial da busca (YYYY-MM-DD)" },
-              "date_to":          { "type": "string",  "description": "Data final da busca (YYYY-MM-DD)" },
-              "duration_minutes": { "type": "integer", "default": 60, "description": "Duração necessária da entrevista em minutos" }
-            }
-          },
-          "output": {
-            "type": "object",
-            "properties": {
-              "interviewer_id":  { "type": "string", "description": "ID do entrevistador" },
-              "available_slots": { "type": "array",  "items": { "$ref": "#/definitions/TimeSlot" }, "description": "Lista de horários disponíveis" },
-              "message":         { "type": "string", "description": "Mensagem legível com os horários disponíveis" }
-            }
-          }
-        },
-        {
           "name": "schedule_interview",
-          "description": "Agenda uma entrevista para um candidato em um processo seletivo. Verificar disponibilidade do entrevistador antes de confirmar. Sempre chamar get_scheduling_options antes para obter IDs válidos.",
-          "input": {
+          "description": "Agenda uma entrevista para um candidato. Sempre verificar disponibilidade com get_available_slots antes de confirmar.",
+          "inputSchema": {
             "type": "object",
-            "required": ["candidate_id", "process_id", "interviewer_id", "proposed_datetime", "interview_type"],
             "properties": {
-              "candidate_id":       { "type": "string",  "description": "ID do candidato a ser entrevistado" },
-              "process_id":         { "type": "string",  "description": "ID do processo seletivo" },
-              "interviewer_id":     { "type": "string",  "description": "ID do entrevistador responsável" },
-              "proposed_datetime":  { "type": "string",  "description": "Data e hora proposta (ISO 8601: YYYY-MM-DDTHH:MM)" },
-              "interview_type":     { "type": "string",  "enum": ["tecnica", "cultural", "gestao", "rh"], "description": "Tipo de entrevista" },
-              "duration_minutes":   { "type": "integer", "default": 60, "description": "Duração da entrevista em minutos" },
-              "notes":              { "type": "string",  "description": "Observações para o agendamento", "nullable": true }
-            }
+              "candidate_id":      { "type": "string" },
+              "process_id":        { "type": "string" },
+              "interviewer_id":    { "type": "string" },
+              "proposed_datetime": { "type": "string", "description": "ISO 8601: YYYY-MM-DDTHH:MM" },
+              "interview_type":    { "type": "string", "enum": ["tecnica", "cultural", "gestao", "rh"] },
+              "duration_minutes":  { "type": "integer", "default": 60, "description": "Duração em minutos" },
+              "notes":             { "type": "string", "description": "Observações (opcional)" }
+            },
+            "required": ["candidate_id", "process_id", "interviewer_id", "proposed_datetime", "interview_type"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "interview_id":       { "type": "string", "description": "ID único do agendamento criado" },
-              "candidate_id":       { "type": "string", "description": "ID do candidato" },
-              "process_id":         { "type": "string", "description": "ID do processo seletivo" },
-              "scheduled_datetime": { "type": "string", "description": "Data e hora confirmada do agendamento" },
-              "interviewer_id":     { "type": "string", "description": "ID do entrevistador" },
+              "interview_id":       { "type": "string" },
+              "candidate_id":       { "type": "string" },
+              "process_id":         { "type": "string" },
+              "scheduled_datetime": { "type": "string", "description": "ISO 8601" },
+              "interviewer_id":     { "type": "string" },
               "status":             { "type": "string", "enum": ["success", "error"] },
-              "message":            { "type": "string", "description": "Mensagem legível com o resultado do agendamento" }
-            }
+              "message":            { "type": "string" }
+            },
+            "required": ["interview_id", "candidate_id", "process_id", "scheduled_datetime", "interviewer_id", "status", "message"]
           }
         },
         {
           "name": "reschedule_interview",
-          "description": "Remarca uma entrevista para uma nova data e hora. O motivo da remarcação é obrigatório para registro no histórico.",
-          "input": {
+          "description": "Remarca uma entrevista para nova data e hora. O motivo é obrigatório.",
+          "inputSchema": {
             "type": "object",
-            "required": ["interview_id", "new_datetime", "reason"],
             "properties": {
-              "interview_id": { "type": "string", "description": "ID do agendamento a ser remarcado" },
-              "new_datetime": { "type": "string", "description": "Nova data e hora (ISO 8601: YYYY-MM-DDTHH:MM)" },
+              "interview_id": { "type": "string" },
+              "new_datetime": { "type": "string", "description": "ISO 8601: YYYY-MM-DDTHH:MM" },
               "reason":       { "type": "string", "description": "Motivo da remarcação" }
-            }
+            },
+            "required": ["interview_id", "new_datetime", "reason"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "interview_id":       { "type": "string", "description": "ID do agendamento remarcado" },
-              "previous_datetime":  { "type": "string", "description": "Data e hora anterior" },
-              "new_datetime":       { "type": "string", "description": "Nova data e hora confirmada" },
-              "status":             { "type": "string", "enum": ["success", "error"] },
-              "message":            { "type": "string", "description": "Mensagem legível com o resultado da remarcação" }
-            }
+              "interview_id":      { "type": "string" },
+              "previous_datetime": { "type": "string" },
+              "new_datetime":      { "type": "string" },
+              "status":            { "type": "string", "enum": ["success", "error"] },
+              "message":           { "type": "string" }
+            },
+            "required": ["interview_id", "previous_datetime", "new_datetime", "status", "message"]
           }
         },
         {
-          "name": "cancel_interview",
-          "description": "Cancela uma entrevista agendada. O motivo do cancelamento é obrigatório. Sempre confirmar com o recrutador antes de cancelar.",
-          "input": {
+          "name": "get_available_slots",
+          "description": "Retorna horários disponíveis de um entrevistador. Sempre consultar antes de agendar ou remarcar.",
+          "inputSchema": {
             "type": "object",
-            "required": ["interview_id", "reason"],
             "properties": {
-              "interview_id": { "type": "string", "description": "ID do agendamento a ser cancelado" },
-              "reason":       { "type": "string", "description": "Motivo do cancelamento" }
-            }
+              "interviewer_id":   { "type": "string" },
+              "date_from":        { "type": "string", "description": "Data inicial YYYY-MM-DD" },
+              "date_to":          { "type": "string", "description": "Data final YYYY-MM-DD" },
+              "duration_minutes": { "type": "integer", "default": 60, "description": "Duração necessária em minutos" }
+            },
+            "required": ["interviewer_id", "date_from", "date_to"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "interview_id": { "type": "string", "description": "ID do agendamento cancelado" },
-              "status":       { "type": "string", "enum": ["success", "error"] },
-              "message":      { "type": "string", "description": "Mensagem legível com o resultado do cancelamento" }
-            }
+              "interviewer_id":  { "type": "string" },
+              "available_slots": { "type": "array", "items": { "$ref": "#/$defs/TimeSlot" } },
+              "message":         { "type": "string" }
+            },
+            "required": ["interviewer_id", "available_slots", "message"]
           }
         },
         {
           "name": "get_interviews_by_process",
-          "description": "Lista todas as entrevistas agendadas de um processo seletivo, incluindo status, tipo, candidatos e horários.",
-          "input": {
+          "description": "Lista todas as entrevistas de um processo com status, tipo, candidatos e horários.",
+          "inputSchema": {
             "type": "object",
-            "required": ["process_id"],
             "properties": {
-              "process_id": { "type": "string", "description": "ID do processo seletivo" }
-            }
+              "process_id": { "type": "string" }
+            },
+            "required": ["process_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "process_id": { "type": "string",  "description": "ID do processo seletivo" },
-              "interviews": { "type": "array",   "items": { "$ref": "#/definitions/InterviewDetail" }, "description": "Lista de entrevistas do processo" },
-              "total":      { "type": "integer", "description": "Total de entrevistas" },
-              "message":    { "type": "string",  "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "process_id": { "type": "string" },
+              "interviews": { "type": "array", "items": { "$ref": "#/$defs/InterviewDetail" } },
+              "total":      { "type": "integer" },
+              "message":    { "type": "string" }
+            },
+            "required": ["process_id", "interviews", "total", "message"]
           }
         },
         {
           "name": "get_interview",
-          "description": "Retorna os dados completos de uma entrevista específica pelo ID: candidato, entrevistador, horário, tipo, status e observações.",
-          "input": {
+          "description": "Retorna os dados completos de uma entrevista específica pelo ID.",
+          "inputSchema": {
             "type": "object",
-            "required": ["interview_id"],
             "properties": {
-              "interview_id": { "type": "string", "description": "ID único da entrevista" }
-            }
+              "interview_id": { "type": "string" }
+            },
+            "required": ["interview_id"]
           },
-          "output": {
+          "outputSchema": {
             "type": "object",
             "properties": {
-              "interview": { "$ref": "#/definitions/InterviewDetail" },
-              "message":   { "type": "string", "description": "Mensagem legível com o resultado da consulta" }
-            }
+              "interview": { "$ref": "#/$defs/InterviewDetail" },
+              "message":   { "type": "string" }
+            },
+            "required": ["interview", "message"]
+          }
+        },
+        {
+          "name": "get_scheduling_options",
+          "description": "Retorna entrevistadores disponíveis e tipos de entrevista suportados. Sempre chamar antes de agendar para apresentar as opções ao recrutador.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "interviewers":    { "type": "array", "items": { "$ref": "#/$defs/InterviewerInfo" } },
+              "interview_types": { "type": "array", "items": { "$ref": "#/$defs/InterviewTypeInfo" } },
+              "message":         { "type": "string" }
+            },
+            "required": ["interviewers", "interview_types", "message"]
+          }
+        },
+        {
+          "name": "cancel_interview",
+          "description": "Cancela uma entrevista agendada. Motivo obrigatório. Sempre confirmar com o recrutador antes de cancelar.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "interview_id": { "type": "string" },
+              "reason":       { "type": "string", "description": "Motivo do cancelamento" }
+            },
+            "required": ["interview_id", "reason"]
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "interview_id": { "type": "string" },
+              "status":       { "type": "string", "enum": ["success", "error"] },
+              "message":      { "type": "string" }
+            },
+            "required": ["interview_id", "status", "message"]
           }
         }
       ]
     }
-  ],
-
-  "definitions": {
-    "ProcessSummary": {
-      "type": "object",
-      "properties": {
-        "process_id":             { "type": "string",  "description": "ID único do processo seletivo" },
-        "job_title":              { "type": "string",  "description": "Título da vaga" },
-        "department":             { "type": "string",  "description": "Departamento responsável" },
-        "recruiter_name":         { "type": "string",  "description": "Nome do recrutador responsável" },
-        "status":                 { "type": "string",  "enum": ["em_aberto", "em_andamento", "suspenso", "encerrado"] },
-        "sla_status":             { "type": "string",  "enum": ["no_prazo", "em_risco", "em_atraso"] },
-        "sla_deadline_date":      { "type": "string",  "description": "Data limite do SLA (YYYY-MM-DD)" },
-        "days_since_last_update": { "type": "integer", "description": "Dias desde a última atualização do processo" },
-        "open_candidates_count":  { "type": "integer", "description": "Número de candidatos ativos no processo" }
-      }
-    },
-    "TimelineEvent": {
-      "type": "object",
-      "properties": {
-        "stage":  { "type": "string", "description": "Nome da etapa" },
-        "date":   { "type": "string", "description": "Data do evento (YYYY-MM-DD)" },
-        "actor":  { "type": "string", "description": "Responsável pela ação" },
-        "notes":  { "type": "string", "description": "Observações sobre o evento", "nullable": true }
-      }
-    },
-    "CandidateSummary": {
-      "type": "object",
-      "properties": {
-        "candidate_id":  { "type": "string",  "description": "ID único do candidato" },
-        "full_name":     { "type": "string",  "description": "Nome completo do candidato" },
-        "current_stage": { "type": "string",  "description": "Etapa atual do candidato no processo" },
-        "days_in_stage": { "type": "integer", "description": "Dias que o candidato está na etapa atual" }
-      }
-    },
-    "CandidatesByStage": {
-      "type": "object",
-      "properties": {
-        "stage_name": { "type": "string", "enum": ["inscrito", "triagem", "entrevista", "tecnico", "proposta", "contratado", "reprovado", "desistiu"] },
-        "candidates": { "type": "array", "items": { "$ref": "#/definitions/CandidateSummary" } }
-      }
-    },
-    "CandidateProfile": {
-      "type": "object",
-      "properties": {
-        "candidate_id":  { "type": "string",  "description": "ID único do candidato" },
-        "full_name":     { "type": "string",  "description": "Nome completo do candidato" },
-        "email":         { "type": "string",  "description": "E-mail do candidato" },
-        "phone":         { "type": "string",  "description": "Telefone do candidato", "nullable": true },
-        "current_stage": { "type": "string",  "enum": ["inscrito", "triagem", "entrevista", "tecnico", "proposta", "contratado", "reprovado", "desistiu"] },
-        "process_id":    { "type": "string",  "description": "ID do processo seletivo" },
-        "days_in_stage": { "type": "integer", "description": "Dias que o candidato está na etapa atual" },
-        "applied_at":    { "type": "string",  "description": "Data de inscrição (YYYY-MM-DD)" }
-      }
-    },
-    "QuickAction": {
-      "type": "object",
-      "properties": {
-        "label":  { "type": "string", "description": "Rótulo do botão de ação rápida" },
-        "prompt": { "type": "string", "description": "Prompt enviado ao agente ao clicar na ação rápida" }
-      }
-    },
-    "InterviewDetail": {
-      "type": "object",
-      "properties": {
-        "interview_id":         { "type": "string",  "description": "ID único da entrevista" },
-        "candidate_id":         { "type": "string",  "description": "ID do candidato" },
-        "candidate_name":       { "type": "string",  "description": "Nome completo do candidato" },
-        "process_id":           { "type": "string",  "description": "ID do processo seletivo" },
-        "interviewer_id":       { "type": "string",  "description": "ID do entrevistador" },
-        "interview_type":       { "type": "string",  "enum": ["tecnica", "cultural", "gestao", "rh"] },
-        "scheduled_datetime":   { "type": "string",  "description": "Data e hora da entrevista (ISO 8601)" },
-        "duration_minutes":     { "type": "integer", "description": "Duração em minutos" },
-        "status":               { "type": "string",  "enum": ["agendada", "cancelada", "realizada"] },
-        "notes":                { "type": "string",  "description": "Observações do agendamento", "nullable": true },
-        "cancellation_reason":  { "type": "string",  "description": "Motivo do cancelamento", "nullable": true },
-        "reschedule_reason":    { "type": "string",  "description": "Motivo da remarcação", "nullable": true }
-      }
-    },
-    "InterviewerInfo": {
-      "type": "object",
-      "properties": {
-        "interviewer_id": { "type": "string", "description": "ID único do entrevistador" },
-        "name":           { "type": "string", "description": "Nome completo do entrevistador" },
-        "role":           { "type": "string", "description": "Cargo do entrevistador" },
-        "department":     { "type": "string", "description": "Departamento do entrevistador" }
-      }
-    },
-    "InterviewTypeInfo": {
-      "type": "object",
-      "properties": {
-        "interview_type": { "type": "string", "description": "Código do tipo de entrevista" },
-        "label":          { "type": "string", "description": "Nome legível do tipo de entrevista" },
-        "description":    { "type": "string", "description": "Descrição do objetivo da entrevista" }
-      }
-    },
-    "TimeSlot": {
-      "type": "object",
-      "properties": {
-        "start_datetime": { "type": "string", "description": "Início do horário disponível (ISO 8601)" },
-        "end_datetime":   { "type": "string", "description": "Fim do horário disponível (ISO 8601)" }
-      }
-    }
-  }
+  ]
 }

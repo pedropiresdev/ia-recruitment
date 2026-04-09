@@ -1,19 +1,13 @@
+from typing import Optional
+
 from agno.agent import Agent
+from agno.db.postgres import PostgresDb
 from agno.models.anthropic import Claude
 from agno.tools.mcp import MCPTools
 
 from utils.config import settings
 
-recruitment_agent = Agent(
-    name="Agente de Recrutamento",
-    model=Claude(id="claude-sonnet-4-5"),
-    tools=[
-        MCPTools(url=settings.job_opening_server_url, refresh_connection=True),
-        MCPTools(url=settings.process_management_server_url, refresh_connection=True),
-        MCPTools(url=settings.screening_server_url, refresh_connection=True),
-        MCPTools(url=settings.scheduling_server_url, refresh_connection=True),
-    ],
-    instructions="""
+RECRUITMENT_INSTRUCTIONS = """
         Você é um assistente especializado em recrutamento e seleção de colaboradores.
 
         Suas responsabilidades principais são:
@@ -119,10 +113,36 @@ recruitment_agent = Agent(
         - Ao receber pedido de agendamento: (1) chame get_scheduling_options, (2) exiba widget
           scheduling_options, (3) aguarde o recrutador selecionar entrevistador e tipo antes
           de chamar schedule_interview.
-    """,
-    add_datetime_to_context=True,
-    add_history_to_context=True,
-    num_history_runs=5,
-    markdown=True,
-    debug_mode=False,
-)
+    """
+
+
+def make_recruitment_agent(db: Optional[PostgresDb] = None) -> Agent:
+    """
+    Cria uma instância do agente de recrutamento.
+
+    Args:
+        db: Instância de PostgresDb para persistência de sessões. Se None, o AgentOS
+            gerencia o storage (uso padrão via agentos.py). Passe um db explícito ao
+            instanciar o agente fora do AgentOS (ex: orchestrator MCP server).
+    """
+    return Agent(
+        name="Agente de Recrutamento",
+        model=Claude(id="claude-sonnet-4-5"),
+        tools=[
+            MCPTools(url=settings.job_opening_server_url, refresh_connection=True),
+            MCPTools(url=settings.process_management_server_url, refresh_connection=True),
+            MCPTools(url=settings.screening_server_url, refresh_connection=True),
+            MCPTools(url=settings.scheduling_server_url, refresh_connection=True),
+        ],
+        db=db,
+        instructions=RECRUITMENT_INSTRUCTIONS,
+        add_datetime_to_context=True,
+        add_history_to_context=True,
+        num_history_runs=5,
+        markdown=True,
+        debug_mode=False,
+    )
+
+
+# Singleton sem DB explícito — o AgentOS injeta o storage em tempo de execução.
+recruitment_agent = make_recruitment_agent()

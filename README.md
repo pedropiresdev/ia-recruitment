@@ -2,6 +2,57 @@
 
 Chatbot de recrutamento e seleção construído com **FastMCP**, **Agno** e **AgentOS**. O agente conversa em linguagem natural com recrutadores para gerenciar vagas, processos seletivos, triagem de candidatos e agendamento de entrevistas.
 
+## Dores que resolve
+
+O processo de recrutamento e seleção é tipicamente fragmentado em múltiplas ferramentas — planilhas, e-mails, ATS corporativos, calendários e chats — o que gera gargalos, perda de contexto e retrabalho para o recrutador. Este chatbot centraliza toda a operação em uma única conversa em linguagem natural.
+
+| Dor | Como o chatbot resolve |
+|---|---|
+| **Vagas gerenciadas em planilhas** | Abertura, atualização e encerramento de vagas diretamente no chat, com histórico persistido em banco |
+| **Ausência de visibilidade do pipeline** | Dashboard em tempo real (widget `ProcessDashboard`) exibido na conversa, com estágios, candidatos por fase e alertas de SLA |
+| **Triagem manual de currículos** | O agente avalia candidatos cadastrados e avança ou rejeita com justificativa, reduzindo decisões manuais repetitivas |
+| **Agendamento caótico de entrevistas** | Verificação de disponibilidade de entrevistadores, criação de slots e notificação automática — tudo pelo chat |
+| **SLAs de processos perdidos** | Alerta configurável (`SLA_ALERT_THRESHOLD_DAYS`) quando um processo seletivo se aproxima do prazo limite |
+| **Troca constante de sistemas** | Interface única integrada a WhatsApp, Teams ou Webchat via protocolo MCP (ecossistema LiGiaPro) |
+| **Onboarding lento de recrutadores** | Linguagem natural em PT-BR elimina curva de aprendizado de ferramentas complexas |
+
+## Funcionalidades
+
+### Gestão de Vagas (`job-opening` · porta 8001)
+- Criar, listar, atualizar e encerrar vagas com todos os atributos (título, área, salário, requisitos)
+- Consulta filtrada por status (abertas, encerradas, em andamento)
+- Histórico completo de alterações
+
+### Gestão de Processos Seletivos (`process-management` · porta 8002)
+- Criar processos vinculados a uma vaga com fases customizáveis
+- Avançar ou retroceder candidatos entre etapas do funil
+- Monitoramento de SLA por processo com alertas automáticos
+- Identificação de gargalos na linha do tempo (`process_timeline`)
+- Encerrar ou cancelar processos com registro de motivo
+
+### Triagem de Candidatos (`candidate-screening` · porta 8003)
+- Cadastrar candidatos com perfil completo (experiência, habilidades, expectativa salarial)
+- Avaliar fit do candidato com a vaga e registrar feedback estruturado
+- Aprovar ou reprovar com justificativa rastreável
+
+### Agendamento de Entrevistas (`interview-scheduling` · porta 8004)
+- Verificar disponibilidade de entrevistadores cadastrados
+- Agendar, reagendar e cancelar entrevistas com controle de conflitos
+- Listar agenda do entrevistador por período
+- Registrar resultado e feedback pós-entrevista
+
+### Interface Conversacional (AgentUI · AgentOS)
+- Chat em linguagem natural com streaming de respostas (SSE)
+- 7 widgets contextuais renderizados automaticamente na conversa (dashboard de processos, board de candidatos, calendário de entrevistas etc.)
+- Histórico de sessão persistido por usuário com autenticação JWT
+- RBAC: controle de acesso por papel (recrutador, gestor, admin)
+
+### Integração LiGiaPro (Orchestrator · porta 8000)
+- MCP server que expõe o agente como ferramenta plugável ao ecossistema LiGiaPro
+- Uma única tool `handle_recruitment_message(message, session_id)` encapsula toda a lógica
+- Histórico de conversa por `session_id` (usuário da LiGiaPro) persistido no PostgreSQL
+- Acessível via Caddy em `/mcp/recruitment` — compatível com WhatsApp, Teams e Webchat
+
 ## Arquitetura
 
 > Diagramas interativos — abra no navegador:
@@ -11,53 +62,57 @@ Chatbot de recrutamento e seleção construído com **FastMCP**, **Agno** e **Ag
 > - **[docs/architecture.html](docs/architecture.html)** — visão completa com detalhes de todas as camadas
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│           AgentUI  (Next.js :3000)                       │
-│  Chat · Widgets (ProcessDashboard, CandidateBoard …)     │
-└───────────────────────┬──────────────────────────────────┘
-                        │  HTTP / SSE (streaming)
-┌───────────────────────▼──────────────────────────────────┐
-│           AgentOS  (FastAPI :7777)                        │
-│  JWT RBAC · WebSocket streaming · sessões PostgreSQL      │
-└───────────────────────┬──────────────────────────────────┘
-                        │  MCPTools (Agno)
-┌───────────────────────▼──────────────────────────────────┐
-│      Recruitment Agent  (Agno + claude-sonnet-4-5)        │
-│  7 widgets · histórico de conversas · instruções PT-BR    │
-└──────┬───────────┬──────────────┬──────────────┬─────────┘
-       │           │    MCP Protocol (streamable-http)
-┌──────▼───┐ ┌─────▼──────┐ ┌────▼──────┐ ┌─────▼────────┐
-│:8001     │ │:8002        │ │:8003      │ │:8004         │
-│job-      │ │process-     │ │candidate- │ │interview-    │
-│opening   │ │management   │ │screening  │ │scheduling    │
-│5 tools   │ │8 tools      │ │4 tools    │ │7 tools       │
-└──────┬───┘ └─────┬──────┘ └────┬──────┘ └─────┬────────┘
-       └───────────┴──────────────┴──────────────┘
-                        │  chamadas async
-┌───────────────────────▼──────────────────────────────────┐
-│           Services + Schemas  (services/ · schemas/)      │
-│  Lógica de negócio pura · Pydantic v2 · SLA · gargalos   │
-└───────────────────────┬──────────────────────────────────┘
-                        │  repository pattern
-┌───────────────────────▼──────────────────────────────────┐
-│           SQLAlchemy 2 + Repositories  (db/)              │
-│  AsyncSession · asyncpg · pool_size=5 · Alembic           │
-└───────────────────────┬──────────────────────────────────┘
-                        │  postgresql+asyncpg://
-┌───────────────────────▼──────────────────────────────────┐
-│           PostgreSQL 16  (Docker :5432)                   │
-│  job_openings · selection_processes · candidates          │
-│  interviews · interviewers · process_timeline             │
-└──────────────────────────────────────────────────────────┘
+ ┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+ │  AgentUI  (Next.js :3000)        │   │  LiGiaPro  (externo)             │
+ │  Chat · Widgets                  │   │  WhatsApp · Teams · Webchat      │
+ └─────────────────┬────────────────┘   └─────────────────┬────────────────┘
+                   │  HTTP / SSE                           │  MCP (streamable-http)
+ ┌─────────────────▼────────────────┐   ┌─────────────────▼────────────────┐
+ │  AgentOS  (FastAPI :7777)        │   │  Orchestrator  (FastMCP :8000)   │
+ │  JWT RBAC · WebSocket streaming  │   │  handle_recruitment_message      │
+ │  sessões PostgreSQL              │   │  session_id · PostgresDb         │
+ └─────────────────┬────────────────┘   └─────────────────┬────────────────┘
+                   │  MCPTools (Agno)                      │  make_recruitment_agent(db=…)
+                   └──────────────────┬────────────────────┘
+                                      │
+          ┌───────────────────────────▼──────────────────────────────┐
+          │      Recruitment Agent  (Agno + claude-sonnet-4-5)        │
+          │  7 widgets · histórico de conversas · instruções PT-BR    │
+          └──────┬──────────────┬─────────────────┬──────────────┬───┘
+                 │              │   MCP Protocol (streamable-http)
+          ┌──────▼───┐   ┌──────▼──────┐   ┌──────▼──────┐   ┌──▼──────────┐
+          │:8001      │   │:8002        │   │:8003        │   │:8004        │
+          │job-       │   │process-     │   │candidate-   │   │interview-   │
+          │opening    │   │management   │   │screening    │   │scheduling   │
+          │5 tools    │   │8 tools      │   │4 tools      │   │7 tools      │
+          └──────┬────┘   └──────┬──────┘   └──────┬──────┘   └──┬──────────┘
+                 └───────────────┴──────────────────┴─────────────┘
+                                      │  chamadas async
+          ┌───────────────────────────▼──────────────────────────────┐
+          │      Services + Schemas  (services/ · schemas/)           │
+          │  Lógica de negócio pura · Pydantic v2 · SLA · gargalos   │
+          └───────────────────────────┬──────────────────────────────┘
+                                      │  repository pattern
+          ┌───────────────────────────▼──────────────────────────────┐
+          │      SQLAlchemy 2 + Repositories  (db/)                   │
+          │  AsyncSession · asyncpg · pool_size=5 · Alembic           │
+          └───────────────────────────┬──────────────────────────────┘
+                                      │  postgresql+asyncpg://
+          ┌───────────────────────────▼──────────────────────────────┐
+          │      PostgreSQL 16  (Docker :5432)                        │
+          │  job_openings · selection_processes · candidates          │
+          │  interviews · interviewers · process_timeline             │
+          └──────────────────────────────────────────────────────────┘
 ```
 
 | Camada | Tecnologia | Porta |
 |---|---|---|
 | Frontend | Next.js 15 + React 18 + Zustand | :3000 |
 | API Gateway | FastAPI (AgentOS) + JWT RBAC | :7777 |
+| Integração LiGiaPro | FastMCP 2.0 (Orchestrator) | :8000 |
 | Agente IA | Agno + Claude Sonnet 4.5 | — |
 | Protocolo | MCP via FastMCP 2.0 (streamable-http) | — |
-| MCP Servers | 4 instâncias independentes | :8001–:8004 |
+| MCP Servers | 4 instâncias de domínio | :8001–:8004 |
 | Serviços | Python async (sem framework) | — |
 | ORM | SQLAlchemy 2 + asyncpg | — |
 | Banco | PostgreSQL 16 (Docker) | :5432 |
@@ -104,6 +159,7 @@ cp .env.example .env
 | `PROCESS_MANAGEMENT_SERVER_URL` | URL do MCP server de processos |
 | `SCREENING_SERVER_URL` | URL do MCP server de triagem |
 | `SCHEDULING_SERVER_URL` | URL do MCP server de agendamento |
+| `ORCHESTRATOR_SERVER_URL` | URL do MCP server orquestrador (para LiGiaPro) |
 | `SLA_ALERT_THRESHOLD_DAYS` | Dias antes do vencimento do SLA para alertar (padrão: 2) |
 
 ### 3. Suba o banco de dados
@@ -140,6 +196,7 @@ Isso sobe os quatro MCP servers e o AgentOS em sequência:
 | Serviço | URL |
 |---|---|
 | AgentOS API | `http://localhost:7777` |
+| Orchestrator MCP (LiGiaPro) | `http://localhost:8000/mcp` |
 | job-opening MCP | `http://localhost:8001/mcp` |
 | process-management MCP | `http://localhost:8002/mcp` |
 | candidate-screening MCP | `http://localhost:8003/mcp` |
@@ -165,8 +222,9 @@ Configure o endpoint do AgentOS no sidebar do AgentUI para `http://localhost:777
 ia-recruitment/
 ├── agentos.py                      # Entrypoint da API de produção (AgentOS)
 ├── agents/
-│   └── recruitment_agent.py        # Agente principal com MCPTools
-├── tools/                          # FastMCP servers (um por domínio)
+│   └── recruitment_agent.py        # Factory make_recruitment_agent() + singleton AgentOS
+├── tools/                          # FastMCP servers
+│   ├── recruitment_orchestrator_server.py  # Gateway MCP para a LiGiaPro (:8000)
 │   ├── job_opening_server.py
 │   ├── process_management_server.py
 │   ├── candidate_screening_server.py

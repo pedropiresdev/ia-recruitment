@@ -437,83 +437,112 @@
 
 <div class="page-header">
   <h1>Recruitment Chatbot — Arquitetura</h1>
-  <p>Visão completa das camadas: Frontend · AgentOS · Agente IA · MCP · Serviços · Banco de dados</p>
+  <p>Visão completa das camadas: Frontend · AgentOS · Orchestrator (LiGiaPro) · Agente IA · MCP · Serviços · Banco de dados</p>
 </div>
 
 <div class="diagram">
 
   <!-- ═══════════════════════════════════════════════════════════════
-       LAYER 1 — Frontend
+       ENTRY POINTS — Dois caminhos de entrada para o mesmo agente
   ════════════════════════════════════════════════════════════════ -->
-  <div class="layer t-frontend">
-    <div class="layer-header">
-      <div class="layer-icon">🖥️</div>
-      <div class="layer-meta">
-        <div class="layer-title">AgentUI — Frontend</div>
-        <div class="layer-subtitle">Next.js 15 · React 18 · TypeScript · Tailwind · Zustand</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0;">
+
+    <!-- Entry 1: AgentUI interno -->
+    <div class="layer t-frontend" style="margin:0">
+      <div class="layer-header">
+        <div class="layer-icon">🖥️</div>
+        <div class="layer-meta">
+          <div class="layer-title">Entrada Interna — AgentUI</div>
+          <div class="layer-subtitle">Next.js 15 · React 18 · Tailwind · Zustand</div>
+        </div>
+        <div class="layer-port">:3000</div>
       </div>
-      <div class="layer-port">:3000</div>
+      <div class="pills">
+        <span class="pill">Chat em linguagem natural</span>
+        <span class="pill">7 widgets de recrutamento</span>
+        <span class="pill">Streaming SSE em tempo real</span>
+      </div>
     </div>
-    <div class="two-col">
-      <div>
-        <div class="agent-col-title">Componentes Chat</div>
-        <div class="pills">
-          <span class="pill">Sidebar</span>
-          <span class="pill">ChatArea</span>
-          <span class="pill">MessageArea</span>
-          <span class="pill">PromptInitializer</span>
-          <span class="pill">RecruitmentNav</span>
-          <span class="pill">MarkdownRenderer</span>
+
+    <!-- Entry 2: LiGiaPro externo -->
+    <div class="layer" style="margin:0; border-color:#10b981; background:linear-gradient(135deg,#081a12 0%,#111827 100%)">
+      <div class="layer-header">
+        <div class="layer-icon">🔗</div>
+        <div class="layer-meta">
+          <div class="layer-title" style="color:#34d399">Entrada Externa — LiGiaPro</div>
+          <div class="layer-subtitle">Orquestrador central da LG · Padrão Magentic</div>
         </div>
+        <div class="layer-port" style="background:rgba(16,185,129,0.15);color:#34d399">externo</div>
       </div>
-      <div>
-        <div class="agent-col-title">Widgets de Recrutamento</div>
-        <div class="pills">
-          <span class="pill">ProcessDashboardWidget</span>
-          <span class="pill">ProcessDetailWidget</span>
-          <span class="pill">CandidateBoardWidget</span>
-          <span class="pill">CandidateProfileWidget</span>
-          <span class="pill">InterviewWidget</span>
-          <span class="pill">SchedulingOptionsWidget</span>
-          <span class="pill">InterviewCard</span>
-        </div>
+      <div class="pills">
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">WhatsApp</span>
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">Microsoft Teams</span>
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">Webchat</span>
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">MCP streamable-http</span>
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">tools/list + tools/call</span>
       </div>
     </div>
   </div>
 
-  <!-- Connector 1→2 -->
+  <!-- Connector dual → gateways -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; height:44px;">
+    <div class="connector" style="margin:0; height:100%">
+      <div class="connector-stem"></div>
+      <div class="connector-label" style="font-size:0.65rem">HTTP / SSE (streaming)</div>
+      <div class="connector-stem"></div>
+      <div class="connector-arrow">▼</div>
+    </div>
+    <div class="connector" style="margin:0; height:100%">
+      <div class="connector-stem" style="background:#10b981"></div>
+      <div class="connector-label" style="font-size:0.65rem;color:#34d399">MCP Protocol (streamable-http)</div>
+      <div class="connector-stem" style="background:#10b981"></div>
+      <div class="connector-arrow" style="color:#34d399">▼</div>
+    </div>
+  </div>
+
+  <!-- Gateway pair: AgentOS + Orchestrator -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0;">
+
+    <!-- AgentOS -->
+    <div class="layer t-api" style="margin:0">
+      <div class="layer-header">
+        <div class="layer-icon">⚡</div>
+        <div class="layer-meta">
+          <div class="layer-title">AgentOS — API Gateway</div>
+          <div class="layer-subtitle">FastAPI · JWT RBAC · WebSocket Streaming · Sessões PostgreSQL</div>
+        </div>
+        <div class="layer-port">:7777</div>
+      </div>
+      <div class="pills">
+        <span class="pill">GET /api/processes</span>
+        <span class="pill">Agent WebSocket stream</span>
+        <span class="pill">Persistência de sessão (Agno PostgresDb)</span>
+      </div>
+    </div>
+
+    <!-- Orchestrator -->
+    <div class="layer" style="margin:0; border-color:#10b981; background:linear-gradient(135deg,#081a12 0%,#111827 100%)">
+      <div class="layer-header">
+        <div class="layer-icon">🎛️</div>
+        <div class="layer-meta">
+          <div class="layer-title" style="color:#34d399">Orchestrator — MCP Gateway</div>
+          <div class="layer-subtitle">FastMCP 2.0 · tools/recruitment_orchestrator_server.py</div>
+        </div>
+        <div class="layer-port" style="background:rgba(16,185,129,0.15);color:#34d399">:8000</div>
+      </div>
+      <div class="pills">
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">handle_recruitment_message</span>
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">session_id por usuário</span>
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">PostgresDb sessions</span>
+        <span class="pill" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3)">Caddy: /mcp/recruitment</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connector gateways → Agent -->
   <div class="connector">
     <div class="connector-stem"></div>
-    <div class="connector-label">HTTP / SSE (streaming)</div>
-    <div class="connector-stem"></div>
-    <div class="connector-arrow">▼</div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-       LAYER 2 — AgentOS / FastAPI
-  ════════════════════════════════════════════════════════════════ -->
-  <div class="layer t-api">
-    <div class="layer-header">
-      <div class="layer-icon">⚡</div>
-      <div class="layer-meta">
-        <div class="layer-title">AgentOS — API Gateway</div>
-        <div class="layer-subtitle">FastAPI · JWT RBAC · WebSocket Streaming · Sessões PostgreSQL</div>
-      </div>
-      <div class="layer-port">:7777</div>
-    </div>
-    <div class="pills">
-      <span class="pill">GET /api/processes</span>
-      <span class="pill">GET /api/processes/{id}</span>
-      <span class="pill">Agent WebSocket stream</span>
-      <span class="pill">CORS configurado</span>
-      <span class="pill">Persistência de sessão (Agno PostgresDb)</span>
-    </div>
-  </div>
-
-  <!-- Connector 2→3 -->
-  <div class="connector">
-    <div class="connector-stem"></div>
-    <div class="connector-label">MCPTools (Agno)</div>
+    <div class="connector-label">make_recruitment_agent(db=…) — mesma instância para ambas as entradas</div>
     <div class="connector-stem"></div>
     <div class="connector-arrow">▼</div>
   </div>
@@ -849,8 +878,9 @@
         <div class="infra-card">
           <div class="infra-card-title">Startup (start.sh)</div>
           <div class="infra-detail">1. MCP servers :8001–:8004</div>
-          <div class="infra-detail">2. sleep 4s</div>
-          <div class="infra-detail">3. AgentOS :7777</div>
+          <div class="infra-detail">2. Orchestrator :8000</div>
+          <div class="infra-detail">3. sleep 4s</div>
+          <div class="infra-detail">4. AgentOS :7777</div>
         </div>
         <div class="infra-card" style="margin-top:0.5rem">
           <div class="infra-card-title">pgAdmin</div>

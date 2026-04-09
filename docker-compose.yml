@@ -88,6 +88,32 @@ services:
       postgres:
         condition: service_healthy
 
+  mcp-orchestrator:
+    build: .
+    restart: unless-stopped
+    command: >
+      uv run fastmcp run tools/recruitment_orchestrator_server.py:mcp
+      --transport streamable-http --host 0.0.0.0 --port 8000
+    environment:
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/recruitment
+      JOB_OPENING_SERVER_URL: http://mcp-job-opening:8001/mcp
+      PROCESS_MANAGEMENT_SERVER_URL: http://mcp-process-management:8002/mcp
+      SCREENING_SERVER_URL: http://mcp-candidate-screening:8003/mcp
+      SCHEDULING_SERVER_URL: http://mcp-scheduling:8004/mcp
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mcp-job-opening:
+        condition: service_started
+      mcp-process-management:
+        condition: service_started
+      mcp-candidate-screening:
+        condition: service_started
+      mcp-scheduling:
+        condition: service_started
+
   agentos:
     build: .
     restart: unless-stopped
@@ -127,6 +153,7 @@ services:
       - mcp-process-management
       - mcp-candidate-screening
       - mcp-scheduling
+      - mcp-orchestrator
       - agentos
 
 volumes:
