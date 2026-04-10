@@ -4,8 +4,11 @@ from sqlalchemy.orm import DeclarativeBase
 from utils.config import settings
 
 # Converte a URL síncrona (postgresql://) para assíncrona (postgresql+asyncpg://)
+# asyncpg usa ?ssl=require, não ?sslmode=require
 def _async_url(url: str) -> str:
-    return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    url = url.replace("sslmode=require", "ssl=require")
+    return url
 
 
 engine = create_async_engine(

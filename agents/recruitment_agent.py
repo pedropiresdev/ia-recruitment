@@ -7,7 +7,7 @@ from agno.tools.mcp import MCPTools
 
 from utils.config import settings
 
-RECRUITMENT_INSTRUCTIONS = """
+_RECRUITMENT_BASE_INSTRUCTIONS = """
         Você é um assistente especializado em recrutamento e seleção de colaboradores.
 
         Suas responsabilidades principais são:
@@ -32,7 +32,9 @@ RECRUITMENT_INSTRUCTIONS = """
           get_process_detail + get_process_timeline + get_candidates_by_stage.
         - Nunca chamar create_job_opening sem ter coletado seniority_level e deadline_days.
         - Responda sempre em português brasileiro.
+    """
 
+_RECRUITMENT_WIDGET_INSTRUCTIONS = """
         ═══════════════════════════════════════════════════════════
         WIDGETS INTERATIVOS — REGRAS OBRIGATÓRIAS
         ═══════════════════════════════════════════════════════════
@@ -115,8 +117,23 @@ RECRUITMENT_INSTRUCTIONS = """
           de chamar schedule_interview.
     """
 
+_RECRUITMENT_TEXT_SUFFIX = """
+        ═══════════════════════════════════════════════════════════
+        FORMATO DE RESPOSTA — TEXTO PURO
+        ═══════════════════════════════════════════════════════════
 
-def make_recruitment_agent(db: Optional[PostgresDb] = None) -> Agent:
+        Responda APENAS em texto markdown. Não use blocos JSON nem widgets.
+        Apresente listas, tabelas e dados usando sintaxe markdown convencional.
+        Ao receber pedido de agendamento, liste as opções disponíveis em texto
+        e aguarde o recrutador informar o entrevistador e o tipo antes de
+        chamar schedule_interview.
+    """
+
+RECRUITMENT_INSTRUCTIONS = _RECRUITMENT_BASE_INSTRUCTIONS + _RECRUITMENT_WIDGET_INSTRUCTIONS
+RECRUITMENT_INSTRUCTIONS_TEXT = _RECRUITMENT_BASE_INSTRUCTIONS + _RECRUITMENT_TEXT_SUFFIX
+
+
+def make_recruitment_agent(db: Optional[PostgresDb] = None, use_widgets: bool = True) -> Agent:
     """
     Cria uma instância do agente de recrutamento.
 
@@ -124,7 +141,11 @@ def make_recruitment_agent(db: Optional[PostgresDb] = None) -> Agent:
         db: Instância de PostgresDb para persistência de sessões. Se None, o AgentOS
             gerencia o storage (uso padrão via agentos.py). Passe um db explícito ao
             instanciar o agente fora do AgentOS (ex: orchestrator MCP server).
+        use_widgets: Se True (padrão, usado pelo AgentOS), o agente retorna blocos JSON
+            de widget para renderização visual. Se False (usado pela LiGiaPro via MCP),
+            retorna apenas texto markdown sem widgets.
     """
+    instructions = RECRUITMENT_INSTRUCTIONS if use_widgets else RECRUITMENT_INSTRUCTIONS_TEXT
     return Agent(
         name="Agente de Recrutamento",
         model=Claude(id="claude-sonnet-4-5"),
@@ -135,7 +156,7 @@ def make_recruitment_agent(db: Optional[PostgresDb] = None) -> Agent:
             MCPTools(url=settings.scheduling_server_url, refresh_connection=True),
         ],
         db=db,
-        instructions=RECRUITMENT_INSTRUCTIONS,
+        instructions=instructions,
         add_datetime_to_context=True,
         add_history_to_context=True,
         num_history_runs=5,

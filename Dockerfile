@@ -8,3 +8,4 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --frozen
 
 COPY . .
+RUN chmod +x scripts/start-*.sh
