@@ -283,6 +283,36 @@ Orchestrator
 LiGiaPro → Usuário (WhatsApp / Teams / Webchat)
 ```
 
+### Exemplo de requisição HTTP (JSON-RPC)
+
+**POST** `https://<domínio>/mcp/recruitment`
+
+```http
+Content-Type: application/json
+Accept: text/event-stream
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-001",
+  "method": "tools/call",
+  "params": {
+    "name": "handle_recruitment_message",
+    "arguments": {
+      "message": "Quais processos seletivos estão em andamento?",
+      "session_id": "ligia_user_42"
+    }
+  }
+}
+```
+
+A resposta chega via SSE:
+
+```
+data: {"jsonrpc":"2.0","id":"req-001","result":{"content":[{"type":"text","text":"Aqui estão os processos seletivos em andamento:\n\n**1. Head de Produto**\n- Candidatos: 4 em triagem, 2 em entrevista\n- SLA: 3 dias restantes ⚠️\n\n**2. Engenheiro Backend Sênior**\n- Candidatos: 7 em triagem\n- SLA: 12 dias restantes ✅\n\n..."}]}}
+```
+
 ### Exemplo de chamada MCP (Python)
 
 ```python

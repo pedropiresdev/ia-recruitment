@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Casos de Uso — Recruitment Chatbot</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; }
+
+    header {
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      padding: 24px 40px;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
+    header p { font-size: 0.875rem; color: #94a3b8; margin-top: 4px; }
+
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 20px 40px;
+      background: #13161f;
+      border-bottom: 1px solid #2d3148;
+    }
+    nav button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #2d3148;
+      background: #1a1d27;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    nav button:hover { background: #252840; color: #e2e8f0; }
+    nav button.active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+
+    main { padding: 40px; max-width: 1200px; margin: 0 auto; }
+
+    .use-case { display: none; }
+    .use-case.active { display: block; }
+
+    .use-case h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .use-case .description {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .tool-card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .tool-card .tool-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #818cf8;
+      font-family: monospace;
+      margin-bottom: 4px;
+    }
+    .tool-card .tool-desc {
+      font-size: 0.75rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .diagram-box {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 32px;
+      overflow-x: auto;
+    }
+    .diagram-box h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 24px;
+    }
+
+    .mermaid { display: flex; justify-content: center; }
+
+    .loading {
+      text-align: center;
+      color: #475569;
+      font-size: 0.875rem;
+      padding: 40px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Casos de Uso — Recruitment Chatbot</h1>
+    <p>Fluxos disponíveis via linguagem natural no chat (AgentOS / LiGiaPro)</p>
+  </header>
+
+  <nav>
+    <button class="active" onclick="show('abertura-vaga', this)">Abertura de Vaga</button>
+    <button onclick="show('monitoramento-processo', this)">Monitoramento de Processo</button>
+    <button onclick="show('triagem-candidato', this)">Triagem de Candidato</button>
+    <button onclick="show('agendamento-entrevista', this)">Agendamento de Entrevista</button>
+    <button onclick="show('sla', this)">Monitoramento de SLA</button>
+    <button onclick="show('pipeline', this)">Pipeline Completo</button>
+  </nav>
+
+  <main>
+
+    <!-- ── UC1: Abertura de Vaga ─────────────────────────────────────────── -->
+    <section id="abertura-vaga" class="use-case active">
+      <h2>Abertura de Vaga</h2>
+      <p class="description">
+        Recrutador solicita a abertura de uma nova posição. O agente coleta os campos obrigatórios
+        em conversa natural, gera a Job Description e registra a vaga no sistema com ID único.
+      </p>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-name">collect_opening_details</div>
+          <div class="tool-desc">Coleta campos faltantes (seniority, deadline, área, salário) via conversa</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">generate_job_description</div>
+          <div class="tool-desc">Gera rascunho da JD a partir dos dados coletados para revisão do recrutador</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">create_job_opening</div>
+          <div class="tool-desc">Persiste a abertura de posição com todos os atributos no banco</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">link_opening_to_posting</div>
+          <div class="tool-desc">Vincula a abertura ao ATS com ID compartilhado para rastreabilidade</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">send_approval_reminder</div>
+          <div class="tool-desc">Dispara lembrete ao gestor quando o prazo de aprovação vence</div>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <h3>Fluxo do Caso de Uso</h3>
+        <div class="mermaid" id="diagram-abertura-vaga">
+flowchart TD
+    A([Recrutador solicita abertura de vaga]) --> B{Campos obrigatórios completos?}
+    B -- Não --> C[collect_opening_details]
+    C --> C1[/"Agente pergunta: seniority, área, salário, deadline_days"/]
+    C1 --> B
+    B -- Sim --> D[generate_job_description]
+    D --> D1{Recrutador aprova JD?}
+    D1 -- Ajustar --> D
+    D1 -- Aprovado --> E[create_job_opening]
+    E --> F[link_opening_to_posting]
+    F --> G([Vaga criada e vinculada])
+    G --> H{Aprovação do gestor dentro do prazo?}
+    H -- Aprovado --> I([Processo pode ser iniciado])
+    H -- Prazo vencido --> J[send_approval_reminder]
+    J --> H
+    style A fill:#4f46e5,color:#fff,stroke:none
+    style G fill:#059669,color:#fff,stroke:none
+    style I fill:#059669,color:#fff,stroke:none
+        </div>
+      </div>
+    </section>
+
+    <!-- ── UC2: Monitoramento de Processo ────────────────────────────────── -->
+    <section id="monitoramento-processo" class="use-case">
+      <h2>Monitoramento de Processo Seletivo</h2>
+      <p class="description">
+        Recrutador consulta o estado atual de um ou mais processos seletivos.
+        O agente retorna visão executiva, candidatos por etapa, timeline e pode suspender o processo.
+      </p>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-name">list_processes</div>
+          <div class="tool-desc">Lista processos com filtro por status (aberto, andamento, suspenso)</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_process_summary</div>
+          <div class="tool-desc">Resumo executivo com ações recomendadas para o processo</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_process_detail</div>
+          <div class="tool-desc">Detalhes completos: candidatos, SLA, histórico e próximas ações</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_process_timeline</div>
+          <div class="tool-desc">Histórico cronológico de etapas para identificar gargalos</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_candidates_by_stage</div>
+          <div class="tool-desc">Candidatos agrupados por etapa do funil de seleção</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">suspend_process</div>
+          <div class="tool-desc">Suspende o processo com motivo obrigatório registrado no histórico</div>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <h3>Fluxo do Caso de Uso</h3>
+        <div class="mermaid" id="diagram-monitoramento-processo">
+flowchart TD
+    A([Recrutador pergunta sobre processos]) --> B{Pergunta genérica ou específica?}
+    B -- Genérica --> C[list_processes]
+    C --> C1{Quer detalhes de um processo?}
+    C1 -- Não --> Z([Resposta entregue])
+    C1 -- Sim --> D[get_process_summary]
+    B -- Específica --> D
+    D --> D1{Quer detalhes completos?}
+    D1 -- Não --> Z
+    D1 -- Sim --> E[get_process_detail]
+    E --> F[get_process_timeline]
+    F --> G[get_candidates_by_stage]
+    G --> H{Recrutador quer suspender?}
+    H -- Não --> Z
+    H -- Sim --> I{Motivo informado?}
+    I -- Não --> I1[/"Agente solicita motivo da suspensão"/]
+    I1 --> I
+    I -- Sim --> J[suspend_process]
+    J --> Z
+    style A fill:#4f46e5,color:#fff,stroke:none
+    style Z fill:#059669,color:#fff,stroke:none
+        </div>
+      </div>
+    </section>
+
+    <!-- ── UC3: Triagem de Candidato ─────────────────────────────────────── -->
+    <section id="triagem-candidato" class="use-case">
+      <h2>Triagem de Candidato</h2>
+      <p class="description">
+        Recrutador consulta ou avalia um candidato. O agente verifica o perfil, realiza triagem
+        automática e movimenta o candidato no funil após confirmação.
+      </p>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-name">get_candidate_profile</div>
+          <div class="tool-desc">Perfil completo: etapa atual, dados de contato, histórico</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">screen_candidate</div>
+          <div class="tool-desc">Avalia fit com a vaga e retorna recomendação (aprovar/reprovar/pendente)</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">move_candidate_stage</div>
+          <div class="tool-desc">Move candidato entre etapas do funil com confirmação para etapas irreversíveis</div>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <h3>Fluxo do Caso de Uso</h3>
+        <div class="mermaid" id="diagram-triagem-candidato">
+flowchart TD
+    A([Recrutador consulta ou avalia candidato]) --> B[get_candidate_profile]
+    B --> C{Objetivo?}
+    C -- Só consultar --> Z([Perfil exibido])
+    C -- Avaliar --> D[screen_candidate]
+    D --> E{Recomendação}
+    E -- Pendente --> E1[/"Agente apresenta dúvidas ao recrutador"/]
+    E1 --> F
+    E -- Aprovar ou Reprovar --> F{Recrutador confirma movimentação?}
+    F -- Não --> Z
+    F -- Sim --> G{Etapa destino é irreversível?}
+    G -- Não --> H[move_candidate_stage]
+    G -- Sim --> G1[/"Agente pede confirmação explícita"/]
+    G1 --> G2{Confirmado?}
+    G2 -- Não --> Z
+    G2 -- Sim --> H
+    H --> Z
+    style A fill:#4f46e5,color:#fff,stroke:none
+    style Z fill:#059669,color:#fff,stroke:none
+        </div>
+      </div>
+    </section>
+
+    <!-- ── UC4: Agendamento de Entrevista ────────────────────────────────── -->
+    <section id="agendamento-entrevista" class="use-case">
+      <h2>Agendamento de Entrevista</h2>
+      <p class="description">
+        Recrutador agenda, remarca ou cancela entrevistas. O agente verifica disponibilidade,
+        apresenta opções e confirma o agendamento com registro completo.
+      </p>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-name">get_scheduling_options</div>
+          <div class="tool-desc">Lista entrevistadores disponíveis e tipos de entrevista suportados</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_available_slots</div>
+          <div class="tool-desc">Horários livres do entrevistador em um período específico</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">schedule_interview</div>
+          <div class="tool-desc">Cria o agendamento com candidato, entrevistador, tipo e horário</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">reschedule_interview</div>
+          <div class="tool-desc">Remarca para nova data com registro obrigatório do motivo</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_interview</div>
+          <div class="tool-desc">Dados completos de uma entrevista específica pelo ID</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_interviews_by_process</div>
+          <div class="tool-desc">Todas as entrevistas de um processo com status e candidatos</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">cancel_interview</div>
+          <div class="tool-desc">Cancela com motivo obrigatório após confirmação do recrutador</div>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <h3>Fluxo do Caso de Uso</h3>
+        <div class="mermaid" id="diagram-agendamento-entrevista">
+flowchart TD
+    A([Recrutador quer gerenciar entrevista]) --> B{Ação?}
+    B -- Agendar --> C[get_scheduling_options]
+    C --> D[get_available_slots]
+    D --> D1[/"Agente apresenta opções ao recrutador"/]
+    D1 --> E{Recrutador escolhe slot?}
+    E -- Não --> D
+    E -- Sim --> F[schedule_interview]
+    F --> Z([Entrevista agendada])
+    B -- Remarcar --> G[get_interview]
+    G --> H{Motivo da remarcação informado?}
+    H -- Não --> H1[/"Agente solicita motivo"/]
+    H1 --> H
+    H -- Sim --> I[get_available_slots]
+    I --> J[reschedule_interview]
+    J --> Z
+    B -- Cancelar --> K[get_interview]
+    K --> L{Motivo do cancelamento informado?}
+    L -- Não --> L1[/"Agente solicita motivo"/]
+    L1 --> L
+    L -- Sim --> M[/"Agente confirma cancelamento"/]
+    M --> N{Confirmado?}
+    N -- Não --> Z2([Ação cancelada])
+    N -- Sim --> O[cancel_interview]
+    O --> Z
+    B -- Consultar --> P[get_interviews_by_process]
+    P --> Z
+    style A fill:#4f46e5,color:#fff,stroke:none
+    style Z fill:#059669,color:#fff,stroke:none
+    style Z2 fill:#64748b,color:#fff,stroke:none
+        </div>
+      </div>
+    </section>
+
+    <!-- ── UC5: Monitoramento de SLA ─────────────────────────────────────── -->
+    <section id="sla" class="use-case">
+      <h2>Monitoramento de SLA</h2>
+      <p class="description">
+        Recrutador ou sistema verifica proativamente os processos em atraso ou em risco de SLA.
+        O agente identifica gargalos e sugere ações corretivas.
+      </p>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-name">get_overdue_sla_processes</div>
+          <div class="tool-desc">Lista processos vencidos ou a vencer nos próximos N dias</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_sla_status</div>
+          <div class="tool-desc">Dias restantes de SLA de um processo específico (negativo = vencido)</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">get_process_timeline</div>
+          <div class="tool-desc">Histórico de etapas para identificar onde o processo travou</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">suspend_process</div>
+          <div class="tool-desc">Suspende processo inviável com motivo registrado</div>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <h3>Fluxo do Caso de Uso</h3>
+        <div class="mermaid" id="diagram-sla">
+flowchart TD
+    A([Recrutador pergunta sobre SLA ou sistema dispara alerta]) --> B[get_overdue_sla_processes]
+    B --> C{Há processos em atraso?}
+    C -- Não --> Z([Todos os processos dentro do prazo])
+    C -- Sim --> D[get_sla_status]
+    D --> E[get_process_timeline]
+    E --> F[/"Agente apresenta diagnóstico e sugere ações corretivas"/]
+    F --> G{Ação do recrutador}
+    G -- Acelerar processo --> H[move_candidate_stage]
+    H --> Z2([Processo reativado])
+    G -- Suspender --> I{Motivo informado?}
+    I -- Não --> I1[/"Agente solicita motivo"/]
+    I1 --> I
+    I -- Sim --> J[suspend_process]
+    J --> Z2
+    G -- Só monitorar --> Z2
+    style A fill:#4f46e5,color:#fff,stroke:none
+    style Z fill:#059669,color:#fff,stroke:none
+    style Z2 fill:#059669,color:#fff,stroke:none
+        </div>
+      </div>
+    </section>
+
+    <!-- ── UC6: Pipeline Completo ────────────────────────────────────────── -->
+    <section id="pipeline" class="use-case">
+      <h2>Pipeline Completo de Recrutamento</h2>
+      <p class="description">
+        Visão end-to-end do fluxo completo: da abertura da vaga até a contratação do candidato,
+        passando por todas as etapas e ferramentas do sistema.
+      </p>
+      <div class="diagram-box">
+        <h3>Fluxo End-to-End</h3>
+        <div class="mermaid" id="diagram-pipeline">
+flowchart LR
+    START([Solicitacao de contratacao]) --> JO
+    subgraph JO [Abertura de Vaga]
+        JO1[collect_opening_details] --> JO2[generate_job_description]
+        JO2 --> JO3[create_job_opening]
+        JO3 --> JO4[link_opening_to_posting]
+    end
+    JO --> PM
+    subgraph PM [Processo Seletivo]
+        PM1[list_processes] --> PM2[get_process_detail]
+        PM2 --> PM3[get_process_timeline]
+        PM3 --> PM4[get_candidates_by_stage]
+    end
+    PM --> CS
+    subgraph CS [Triagem]
+        CS1[get_candidate_profile] --> CS2[screen_candidate]
+        CS2 --> CS3[move_candidate_stage]
+    end
+    CS --> IS
+    subgraph IS [Entrevista]
+        IS1[get_scheduling_options] --> IS2[get_available_slots]
+        IS2 --> IS3[schedule_interview]
+    end
+    IS --> END([Candidato contratado])
+    PM -.->|SLA em risco| SLA
+    subgraph SLA [Monitoramento SLA]
+        SLA1[get_overdue_sla_processes] --> SLA2[get_sla_status]
+        SLA2 --> SLA3[suspend_process]
+    end
+    SLA -.->|Processo suspenso| CANCEL([Processo encerrado])
+    style START fill:#4f46e5,color:#fff,stroke:none
+    style END fill:#059669,color:#fff,stroke:none
+    style CANCEL fill:#dc2626,color:#fff,stroke:none
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4f46e5',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#334155',
+        lineColor: '#475569',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#0f172a',
+        background: '#0f1117',
+        mainBkg: '#1e293b',
+        nodeBorder: '#334155',
+        clusterBkg: '#1a1d27',
+        titleColor: '#e2e8f0',
+        edgeLabelBackground: '#1e293b',
+      }
+    });
+
+    const rendered = new Set();
+
+    async function renderSection(id) {
+      const diagramId = 'diagram-' + id;
+      if (rendered.has(diagramId)) return;
+      rendered.add(diagramId);
+      const el = document.getElementById(diagramId);
+      if (!el) return;
+      el.removeAttribute('data-processed');
+      await mermaid.run({ nodes: [el] });
+    }
+
+    async function show(id, btn) {
+      document.querySelectorAll('.use-case').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      btn.classList.add('active');
+      await renderSection(id);
+    }
+
+    // Renderiza o diagrama inicial
+    renderSection('abertura-vaga');
+  </script>
+</body>
+</html>
