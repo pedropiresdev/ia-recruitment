@@ -39,7 +39,7 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.12"
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   PNPM_VERSION: "9"
   REGISTRY: ghcr.io
   # Nomes de imagem no GHCR precisam ser minúsculos.
@@ -289,6 +289,26 @@ jobs:
           severity-cutoff: critical
           only-fixed: true
           output-format: sarif
+
+      - name: Anotar vulnerabilidades críticas
+        if: failure() && steps.grype.outputs.sarif != ''
+        env:
+          SARIF: ${{ steps.grype.outputs.sarif }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          sarif = json.load(open(os.environ["SARIF"]))
+          for run in sarif.get("runs", []):
+              rules = {r["id"]: r for r in run["tool"]["driver"].get("rules", [])}
+              seen = set()
+              for res in run.get("results", []):
+                  rule = rules.get(res["ruleId"], {})
+                  score = float(rule.get("properties", {}).get("security-severity", 0))
+                  if score >= 9.0 and res["ruleId"] not in seen:
+                      seen.add(res["ruleId"])
+                      msg = res["message"]["text"].replace("\n", " ")[:400]
+                      print(f"::error title=CVE crítica ({res['ruleId']})::{msg}")
+          PY
 
       - name: Publicar resultados no Code Scanning
         if: always() && steps.grype.outputs.sarif != ''
