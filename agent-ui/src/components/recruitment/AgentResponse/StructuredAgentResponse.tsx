@@ -1,20 +1,20 @@
-"use client";
+'use client'
 
-import type { ProcessDetail } from "@/types/recruitment";
-import { QuickActionBar } from "../ProcessPanel/QuickActionBar";
-import { SLABadge } from "../ProcessPanel/SLABadge";
+import type { ProcessDetail } from '@/types/recruitment'
+import { QuickActionBar } from '../ProcessPanel/QuickActionBar'
+import { SLABadge } from '../ProcessPanel/SLABadge'
 
 type StructuredAgentResponseProps = {
-  detail: ProcessDetail;
-  onAction: (prompt: string) => void;
-};
+  detail: ProcessDetail
+  onAction: (prompt: string) => void
+}
 
 export function StructuredAgentResponse({
   detail,
-  onAction,
+  onAction
 }: StructuredAgentResponseProps) {
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-background-secondary p-4 mt-2">
+    <div className="mt-2 space-y-4 rounded-xl border border-border bg-background-secondary p-4">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-primary">{detail.job_title}</h3>
@@ -23,20 +23,21 @@ export function StructuredAgentResponse({
 
       {/* Bloco 1 obrigatório: Gargalo atual identificado */}
       <div className="rounded-lg bg-background p-3">
-        <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
           Gargalo atual
         </p>
         <p className="text-sm text-primary">{detail.bottleneck_description}</p>
         {detail.days_overdue > 0 && (
           <p className="mt-1.5 text-sm font-medium text-red-400">
-            {detail.days_overdue} dia{detail.days_overdue !== 1 ? "s" : ""} de atraso no SLA
+            {detail.days_overdue} dia{detail.days_overdue !== 1 ? 's' : ''} de
+            atraso no SLA
           </p>
         )}
       </div>
 
       {/* Bloco 2 obrigatório: Próximas ações recomendadas */}
       <div>
-        <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
           Próximas ações recomendadas
         </p>
         <ul className="space-y-1">
@@ -54,11 +55,14 @@ export function StructuredAgentResponse({
 
       {/* Bloco 3 obrigatório: Quick actions clicáveis */}
       <div className="border-t border-border pt-3">
-        <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
           Ações rápidas
         </p>
-        <QuickActionBar actions={detail.recommended_actions} onAction={onAction} />
+        <QuickActionBar
+          actions={detail.recommended_actions}
+          onAction={onAction}
+        />
       </div>
     </div>
-  );
+  )
 }

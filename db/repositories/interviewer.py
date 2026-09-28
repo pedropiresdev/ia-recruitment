@@ -12,7 +12,9 @@ async def list_interviewers(session: AsyncSession) -> list[InterviewerModel]:
     return list(result.scalars().all())
 
 
-async def get_interviewer_by_id(session: AsyncSession, interviewer_id: str) -> InterviewerModel:
+async def get_interviewer_by_id(
+    session: AsyncSession, interviewer_id: str
+) -> InterviewerModel:
     result = await session.execute(
         select(InterviewerModel).where(InterviewerModel.id == interviewer_id)
     )

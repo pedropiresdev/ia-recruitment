@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,7 +23,9 @@ class ProcessSummary(BaseModel):
     recruiter_name: str = Field(description="Nome do recrutador responsável")
     status: ProcessStatus = Field(description="Status atual do processo")
     sla_status: SLAStatus = Field(description="Status do SLA do processo")
-    sla_deadline_date: str = Field(description="Data limite do SLA no formato YYYY-MM-DD")
+    sla_deadline_date: str = Field(
+        description="Data limite do SLA no formato YYYY-MM-DD"
+    )
     days_since_last_update: int = Field(
         description="Número de dias desde a última atualização do processo"
     )
@@ -37,7 +38,7 @@ class TimelineEvent(BaseModel):
     stage: str = Field(description="Nome da etapa")
     date: str = Field(description="Data do evento no formato YYYY-MM-DD")
     actor: str = Field(description="Responsável pela ação")
-    notes: Optional[str] = Field(default=None, description="Observações sobre o evento")
+    notes: str | None = Field(default=None, description="Observações sobre o evento")
 
 
 class CandidateSummary(BaseModel):
@@ -58,19 +59,17 @@ class CandidatesByStage(BaseModel):
 
 class QuickAction(BaseModel):
     label: str = Field(description="Rótulo do botão de ação rápida")
-    prompt: str = Field(
-        description="Prompt enviado ao agente ao clicar na ação rápida"
-    )
+    prompt: str = Field(description="Prompt enviado ao agente ao clicar na ação rápida")
 
 
 class ListProcessesInput(BaseModel):
-    status_filter: Optional[ProcessStatus] = Field(
+    status_filter: ProcessStatus | None = Field(
         default=None, description="Filtrar por status do processo"
     )
-    sla_filter: Optional[SLAStatus] = Field(
+    sla_filter: SLAStatus | None = Field(
         default=None, description="Filtrar por status de SLA"
     )
-    recruiter_id: Optional[str] = Field(
+    recruiter_id: str | None = Field(
         default=None, description="Filtrar por recrutador responsável"
     )
 
@@ -86,14 +85,14 @@ class ListProcessesOutput(BaseModel):
 class GetSLAStatusInput(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    process_id: Optional[str] = Field(
+    process_id: str | None = Field(
         default=None,
         description="ID do processo para verificar SLA. Se vazio, retorna todos",
     )
 
 
 class GetSLAStatusOutput(BaseModel):
-    process_id: Optional[str] = Field(
+    process_id: str | None = Field(
         default=None, description="ID do processo consultado"
     )
     sla_status: SLAStatus = Field(description="Status do SLA")
@@ -117,9 +116,7 @@ class GetProcessDetailOutput(BaseModel):
     status: ProcessStatus = Field(description="Status atual do processo")
     sla_status: SLAStatus = Field(description="Status do SLA")
     sla_deadline_date: str = Field(description="Data limite do SLA")
-    days_since_last_update: int = Field(
-        description="Dias desde a última atualização"
-    )
+    days_since_last_update: int = Field(description="Dias desde a última atualização")
     open_candidates_count: int = Field(description="Número de candidatos ativos")
     bottleneck_description: str = Field(
         description="Descrição do gargalo atual identificado no processo"
@@ -138,7 +135,7 @@ class GetProcessTimelineOutput(BaseModel):
     timeline: list[TimelineEvent] = Field(
         description="Histórico cronológico de etapas e datas"
     )
-    bottleneck_stage: Optional[str] = Field(
+    bottleneck_stage: str | None = Field(
         default=None,
         description="Etapa identificada como gargalo no processo",
     )
@@ -169,9 +166,7 @@ class GetProcessSummaryOutput(BaseModel):
 class SuspendProcessInput(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    process_id: str = Field(
-        description="ID único do processo seletivo a ser suspenso"
-    )
+    process_id: str = Field(description="ID único do processo seletivo a ser suspenso")
     suspension_reason: str = Field(
         description="Motivo obrigatório da suspensão do processo — nunca pode ser vazio"
     )

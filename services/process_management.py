@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from schemas.process import (
     CandidatesByStage,
@@ -30,13 +30,13 @@ from utils.exceptions import (
 
 
 def _days_since(dt: datetime) -> int:
-    return (datetime.now(timezone.utc) - dt).days
+    return (datetime.now(UTC) - dt).days
 
 
 def _days_until(dt: datetime | None) -> int:
     if not dt:
         return 0
-    return (dt - datetime.now(timezone.utc)).days
+    return (dt - datetime.now(UTC)).days
 
 
 def _quick_actions(process_id: str, job_title: str) -> list[QuickAction]:
@@ -74,7 +74,9 @@ async def list_processes_service(input: ListProcessesInput) -> ListProcessesOutp
         async with AsyncSessionLocal() as session:
             rows = await list_processes(
                 session,
-                status_filter=input.status_filter.value if input.status_filter else None,
+                status_filter=input.status_filter.value
+                if input.status_filter
+                else None,
                 sla_filter=input.sla_filter.value if input.sla_filter else None,
                 recruiter_id=input.recruiter_id,
             )
@@ -87,7 +89,9 @@ async def list_processes_service(input: ListProcessesInput) -> ListProcessesOutp
                 recruiter_name=p.recruiter_name,
                 status=ProcessStatus(p.status),
                 sla_status=SLAStatus(p.sla_status),
-                sla_deadline_date=p.sla_deadline_date.strftime("%Y-%m-%d") if p.sla_deadline_date else "",
+                sla_deadline_date=p.sla_deadline_date.strftime("%Y-%m-%d")
+                if p.sla_deadline_date
+                else "",
                 days_since_last_update=_days_since(p.updated_at),
                 open_candidates_count=p.open_candidates_count,
             )
@@ -144,7 +148,9 @@ async def get_process_summary_service(
         async with AsyncSessionLocal() as session:
             p = await get_process_by_id(session, input.process_id)
 
-        days_overdue = abs(_days_until(p.sla_deadline_date)) if p.sla_status == "em_atraso" else 0
+        days_overdue = (
+            abs(_days_until(p.sla_deadline_date)) if p.sla_status == "em_atraso" else 0
+        )
         summary = (
             f"**{p.job_title}** — {p.department}\n"
             f"- Recrutador: {p.recruiter_name}\n"
@@ -179,7 +185,9 @@ async def get_process_detail_service(
         async with AsyncSessionLocal() as session:
             p = await get_process_by_id(session, input.process_id)
 
-        days_overdue = abs(_days_until(p.sla_deadline_date)) if p.sla_status == "em_atraso" else 0
+        days_overdue = (
+            abs(_days_until(p.sla_deadline_date)) if p.sla_status == "em_atraso" else 0
+        )
         bottleneck = _bottleneck(p, p.timeline)
 
         return GetProcessDetailOutput(
@@ -189,7 +197,9 @@ async def get_process_detail_service(
             recruiter_name=p.recruiter_name,
             status=ProcessStatus(p.status),
             sla_status=SLAStatus(p.sla_status),
-            sla_deadline_date=p.sla_deadline_date.strftime("%Y-%m-%d") if p.sla_deadline_date else "",
+            sla_deadline_date=p.sla_deadline_date.strftime("%Y-%m-%d")
+            if p.sla_deadline_date
+            else "",
             days_since_last_update=_days_since(p.updated_at),
             open_candidates_count=p.open_candidates_count,
             bottleneck_description=bottleneck,
@@ -296,7 +306,9 @@ async def suspend_process_service(
 
     try:
         async with AsyncSessionLocal() as session:
-            p = await suspend_process(session, input.process_id, input.suspension_reason)
+            p = await suspend_process(
+                session, input.process_id, input.suspension_reason
+            )
             await add_timeline_event(
                 session,
                 process_id=input.process_id,
@@ -328,7 +340,9 @@ async def get_overdue_sla_service(
 
     try:
         async with AsyncSessionLocal() as session:
-            overdue_rows, at_risk_rows = await get_overdue_processes(session, input.days_ahead)
+            overdue_rows, at_risk_rows = await get_overdue_processes(
+                session, input.days_ahead
+            )
 
         def to_summary(p) -> ProcessSummary:
             return ProcessSummary(
@@ -338,7 +352,9 @@ async def get_overdue_sla_service(
                 recruiter_name=p.recruiter_name,
                 status=ProcessStatus(p.status),
                 sla_status=SLAStatus(p.sla_status),
-                sla_deadline_date=p.sla_deadline_date.strftime("%Y-%m-%d") if p.sla_deadline_date else "",
+                sla_deadline_date=p.sla_deadline_date.strftime("%Y-%m-%d")
+                if p.sla_deadline_date
+                else "",
                 days_since_last_update=_days_since(p.updated_at),
                 open_candidates_count=p.open_candidates_count,
             )

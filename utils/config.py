@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,9 +7,9 @@ class Settings(BaseSettings):
     app_name: str = "recruitment-agentos"
     debug: bool = False
     database_url: str = "postgresql://admin:admin123@localhost:5432/recruitment"
-    cors_allowed_origins: List[str] = ["http://localhost:3000"]
+    cors_allowed_origins: list[str] = ["http://localhost:3000"]
 
-    anthropic_api_key: Optional[str] = None
+    anthropic_api_key: str | None = None
 
     # URLs dos servidores MCP — um por domínio
     job_opening_server_url: str = "http://localhost:8001/mcp"

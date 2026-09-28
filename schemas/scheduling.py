@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -18,7 +16,7 @@ class ScheduleInterviewInput(BaseModel):
     duration_minutes: int = Field(
         default=60, description="Duração da entrevista em minutos"
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None, description="Observações para o agendamento"
     )
 
@@ -27,9 +25,7 @@ class ScheduleInterviewOutput(BaseModel):
     interview_id: str = Field(description="ID único do agendamento criado")
     candidate_id: str = Field(description="ID do candidato")
     process_id: str = Field(description="ID do processo seletivo")
-    scheduled_datetime: str = Field(
-        description="Data e hora confirmada do agendamento"
-    )
+    scheduled_datetime: str = Field(description="Data e hora confirmada do agendamento")
     interviewer_id: str = Field(description="ID do entrevistador")
     status: str = Field(description="Status da operação: 'success' ou 'error'")
     message: str = Field(description="Mensagem legível com o resultado do agendamento")
@@ -59,12 +55,8 @@ class GetAvailableSlotsInput(BaseModel):
     interviewer_id: str = Field(
         description="ID do entrevistador para verificar disponibilidade"
     )
-    date_from: str = Field(
-        description="Data inicial da busca no formato YYYY-MM-DD"
-    )
-    date_to: str = Field(
-        description="Data final da busca no formato YYYY-MM-DD"
-    )
+    date_from: str = Field(description="Data inicial da busca no formato YYYY-MM-DD")
+    date_to: str = Field(description="Data final da busca no formato YYYY-MM-DD")
     duration_minutes: int = Field(
         default=60, description="Duração necessária da entrevista em minutos"
     )
@@ -77,9 +69,7 @@ class TimeSlot(BaseModel):
 
 class GetAvailableSlotsOutput(BaseModel):
     interviewer_id: str = Field(description="ID do entrevistador")
-    available_slots: list[TimeSlot] = Field(
-        description="Lista de horários disponíveis"
-    )
+    available_slots: list[TimeSlot] = Field(description="Lista de horários disponíveis")
     message: str = Field(description="Mensagem legível com os horários disponíveis")
 
 
@@ -110,14 +100,20 @@ class InterviewDetail(BaseModel):
     scheduled_datetime: str = Field(description="Data e hora da entrevista (ISO 8601)")
     duration_minutes: int = Field(description="Duração em minutos")
     status: str = Field(description="Status: agendada, cancelada ou realizada")
-    notes: Optional[str] = Field(default=None, description="Observações do agendamento")
-    cancellation_reason: Optional[str] = Field(default=None, description="Motivo do cancelamento")
-    reschedule_reason: Optional[str] = Field(default=None, description="Motivo da remarcação")
+    notes: str | None = Field(default=None, description="Observações do agendamento")
+    cancellation_reason: str | None = Field(
+        default=None, description="Motivo do cancelamento"
+    )
+    reschedule_reason: str | None = Field(
+        default=None, description="Motivo da remarcação"
+    )
 
 
 class GetInterviewsByProcessOutput(BaseModel):
     process_id: str = Field(description="ID do processo seletivo")
-    interviews: list[InterviewDetail] = Field(description="Lista de entrevistas do processo")
+    interviews: list[InterviewDetail] = Field(
+        description="Lista de entrevistas do processo"
+    )
     total: int = Field(description="Total de entrevistas")
     message: str = Field(description="Mensagem legível com o resultado da consulta")
 
@@ -145,6 +141,10 @@ class InterviewTypeInfo(BaseModel):
 
 
 class GetSchedulingOptionsOutput(BaseModel):
-    interviewers: list[InterviewerInfo] = Field(description="Lista de entrevistadores disponíveis")
-    interview_types: list[InterviewTypeInfo] = Field(description="Tipos de entrevista disponíveis")
+    interviewers: list[InterviewerInfo] = Field(
+        description="Lista de entrevistadores disponíveis"
+    )
+    interview_types: list[InterviewTypeInfo] = Field(
+        description="Tipos de entrevista disponíveis"
+    )
     message: str = Field(description="Mensagem de contexto")

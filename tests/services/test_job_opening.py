@@ -1,5 +1,3 @@
-import pytest
-
 from schemas.job_opening import CreateJobOpeningInput
 from services.job_opening import create_job_opening_service
 

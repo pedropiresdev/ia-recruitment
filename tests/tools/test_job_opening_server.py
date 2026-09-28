@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from schemas.job_opening import CreateJobOpeningInput, CreateJobOpeningOutput
 from tools.job_opening_server import create_job_opening
@@ -7,7 +8,7 @@ from utils.exceptions import RecruitmentServiceError
 
 async def test_create_job_opening_success(mocker):
     mocker.patch(
-        "services.job_opening.create_job_opening_service",
+        "tools.job_opening_server.create_job_opening_service",
         return_value=CreateJobOpeningOutput(
             opening_id="OPEN-ABC123",
             job_posting_id="JOB-DEF456",
@@ -33,7 +34,7 @@ async def test_create_job_opening_success(mocker):
 
 
 async def test_create_job_opening_invalid_input():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CreateJobOpeningInput(
             position_title=123,
             department=None,
@@ -45,7 +46,7 @@ async def test_create_job_opening_invalid_input():
 
 async def test_create_job_opening_service_failure(mocker):
     mocker.patch(
-        "services.job_opening.create_job_opening_service",
+        "tools.job_opening_server.create_job_opening_service",
         side_effect=RecruitmentServiceError("Falha simulada"),
     )
 

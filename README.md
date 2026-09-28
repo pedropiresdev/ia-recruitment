@@ -419,6 +419,16 @@ make test
 
 Os testes usam `pytest-asyncio` (modo `auto`) e `pytest-mock`. Cada MCP tool deve ter cobertura para: caminho feliz, input inválido e falha de serviço.
 
+Os testes de `services/` e `tools/` precisam do PostgreSQL com as migrations aplicadas (`make db-up && make migrate`).
+
+Os testes de protocolo MCP (`tests/test_mcp_protocol.py`) são marcados como `integration` e ficam fora do `make test`. Rode-os com os servidores no ar:
+
+```bash
+make start                              # em outro terminal
+uv run pytest -m integration -v         # servidores locais (portas 8001-8004)
+MCP_BASE_URL=http://localhost uv run pytest -m integration -v   # via Caddy
+```
+
 ## Qualidade de código
 
 O projeto usa `ruff` como formatter e linter:
@@ -428,6 +438,51 @@ make fix   # corrige e formata em um só comando
 ```
 
 Regras ativas: `E, F, I, UP, B, SIM` · comprimento de linha: 88.
+
+## CI/CD (GitHub Actions)
+
+O pipeline fica em [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml) e roda em todo pull request e push na `main`.
+
+```
+PR / push ──► lint-backend ─┐
+              test-backend ─┤
+              frontend ─────┼──► build-images ──► deploy-staging ──► deploy-production
+              codeql ───────┘    (GHCR + Grype)   (efêmero + ZAP)    (aprovação manual)
+              dependency-review (só em PR)
+```
+
+| Job | O que faz | Tipo de verificação |
+|---|---|---|
+| `lint-backend` | `ruff check`, `ruff format --check`, `uv lock --check` | Estática |
+| `frontend` | ESLint, Prettier, `tsc --noEmit` e `next build` do `agent-ui` | Estática |
+| `codeql` | Análise de segurança do Python e do TypeScript (GitHub CodeQL) | Estática (SAST) |
+| `dependency-review` | Bloqueia PRs que introduzem dependências com CVE alta/crítica | Estática (SCA) |
+| `test-backend` | PostgreSQL real, migrations (upgrade → downgrade → upgrade + `alembic check`), testes unitários com cobertura e testes de protocolo MCP com os servidores no ar | Dinâmica |
+| `build-images` | Build das imagens `api` e `ui`, scan com Grype (falha em CVE crítica com correção disponível), resultados no *Code Scanning*, push no GHCR com SBOM e proveniência | Estática (imagem) |
+| `deploy-staging` | Sobe a stack de produção no runner com as imagens do GHCR, roda migrations e seed, smoke tests HTTP, testes MCP através do Caddy e OWASP ZAP baseline | Dinâmica (DAST) |
+| `deploy-production` | Deploy via SSH da mesma imagem validada no staging, health check e rollback automático | — |
+
+PRs executam só a parte de CI (nada é publicado). Os deploys rodam apenas na `main`.
+
+### Configuração dos ambientes
+
+Em **Settings ▸ Environments**, crie:
+
+- **`staging`** — secret opcional `ANTHROPIC_API_KEY` (os testes não chamam o LLM).
+- **`production`** — marque **Required reviewers** para exigir aprovação manual antes do deploy e configure:
+
+| Tipo | Nome | Conteúdo |
+|---|---|---|
+| Secret | `PROD_SSH_HOST` | Host do servidor |
+| Secret | `PROD_SSH_USER` | Usuário SSH (com acesso ao Docker) |
+| Secret | `PROD_SSH_KEY` | Chave privada SSH |
+| Secret | `PROD_ENV_FILE` | Conteúdo completo do `.env` de produção, incluindo `POSTGRES_PASSWORD` e `ANTHROPIC_API_KEY` |
+| Variable | `PRODUCTION_URL` | URL pública, ex.: `https://recrutamento.empresa.com` |
+| Variable | `PROD_APP_DIR` | Diretório no servidor (padrão `/opt/ia-recruitment`) |
+
+Sem esses secrets o job de produção é pulado com um aviso no resumo da execução, e o restante do pipeline continua funcionando.
+
+O deploy usa `docker-compose.yml` + [`docker-compose.prod.yml`](docker-compose.prod.yml), que troca o `build` pelas imagens do GHCR, lê a senha do banco do `.env`, não expõe o PostgreSQL no host e adiciona um serviço `migrate` para rodar o Alembic.
 
 ## Migrações de banco
 

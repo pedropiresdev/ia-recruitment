@@ -30,15 +30,32 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-mock>=3.12",
+    "pytest-cov>=5.0",
     "ruff>=0.4",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: testes que exigem os servidores MCP em execução",
+]
 
 [tool.ruff]
 line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+# E501: o comprimento de linha é garantido pelo `ruff format`; as linhas longas
+#       restantes são strings (prompts do agente, descrições de tools).
+# UP042: migrar para StrEnum mudaria a serialização dos enums — fora do escopo.
+ignore = ["E501", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+# Estes módulos carregam o .env / ajustam sys.path antes dos imports de propósito.
+"agentos.py" = ["E402"]
+"alembic/env.py" = ["E402"]
+"scripts/seed.py" = ["E402"]

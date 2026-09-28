@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from db.models.interview import InterviewModel
 from schemas.scheduling import (
@@ -20,11 +20,12 @@ from schemas.scheduling import (
     ScheduleInterviewOutput,
     TimeSlot,
 )
-
 from utils.exceptions import RecruitmentServiceError
 
 
-def _to_interview_detail(interview: InterviewModel, candidate_name: str) -> InterviewDetail:
+def _to_interview_detail(
+    interview: InterviewModel, candidate_name: str
+) -> InterviewDetail:
     return InterviewDetail(
         interview_id=interview.id,
         candidate_id=interview.candidate_id,
@@ -49,7 +50,7 @@ async def schedule_interview_service(
 
     try:
         scheduled_dt = datetime.fromisoformat(input.proposed_datetime).replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
 
         model = InterviewModel(
@@ -90,7 +91,7 @@ async def reschedule_interview_service(
     from db.repositories.interview import reschedule_interview as repo_reschedule
 
     try:
-        new_dt = datetime.fromisoformat(input.new_datetime).replace(tzinfo=timezone.utc)
+        new_dt = datetime.fromisoformat(input.new_datetime).replace(tzinfo=UTC)
 
         async with AsyncSessionLocal() as session:
             interview = await repo_reschedule(
@@ -123,9 +124,9 @@ async def get_available_slots_service(
     from db.repositories.interview import get_interviewer_slots
 
     try:
-        date_from = datetime.fromisoformat(input.date_from).replace(tzinfo=timezone.utc)
+        date_from = datetime.fromisoformat(input.date_from).replace(tzinfo=UTC)
         date_to = datetime.fromisoformat(input.date_to).replace(
-            hour=23, minute=59, tzinfo=timezone.utc
+            hour=23, minute=59, tzinfo=UTC
         )
 
         async with AsyncSessionLocal() as session:
@@ -195,7 +196,9 @@ async def get_interviews_by_process_service(
         for interview in rows:
             try:
                 async with AsyncSessionLocal() as session:
-                    candidate = await get_candidate_by_id(session, interview.candidate_id)
+                    candidate = await get_candidate_by_id(
+                        session, interview.candidate_id
+                    )
                 candidate_name = candidate.full_name
             except Exception:
                 candidate_name = interview.candidate_id
@@ -248,10 +251,26 @@ async def get_interview_service(input: GetInterviewInput) -> GetInterviewOutput:
 
 
 _INTERVIEW_TYPES: list[InterviewTypeInfo] = [
-    InterviewTypeInfo(interview_type="rh",       label="Entrevista RH",          description="Avaliação comportamental e fit cultural conduzida pelo RH."),
-    InterviewTypeInfo(interview_type="tecnica",   label="Entrevista Técnica",     description="Avaliação de competências técnicas e resolução de problemas."),
-    InterviewTypeInfo(interview_type="cultural",  label="Fit Cultural",           description="Avaliação de alinhamento com os valores e cultura da empresa."),
-    InterviewTypeInfo(interview_type="gestao",    label="Entrevista com Gestão",  description="Entrevista com o gestor direto ou liderança executiva."),
+    InterviewTypeInfo(
+        interview_type="rh",
+        label="Entrevista RH",
+        description="Avaliação comportamental e fit cultural conduzida pelo RH.",
+    ),
+    InterviewTypeInfo(
+        interview_type="tecnica",
+        label="Entrevista Técnica",
+        description="Avaliação de competências técnicas e resolução de problemas.",
+    ),
+    InterviewTypeInfo(
+        interview_type="cultural",
+        label="Fit Cultural",
+        description="Avaliação de alinhamento com os valores e cultura da empresa.",
+    ),
+    InterviewTypeInfo(
+        interview_type="gestao",
+        label="Entrevista com Gestão",
+        description="Entrevista com o gestor direto ou liderança executiva.",
+    ),
 ]
 
 

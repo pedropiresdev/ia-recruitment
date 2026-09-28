@@ -26,7 +26,7 @@ export default {
         positive: '#22C55E',
         recruitment: {
           primary: 'var(--recruitment-primary, #FF4017)',
-          accent: 'var(--recruitment-accent, #27272A)',
+          accent: 'var(--recruitment-accent, #27272A)'
         }
       },
       fontFamily: {

@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,10 +19,10 @@ class ScreenCandidateInput(BaseModel):
 
     candidate_id: str = Field(description="ID único do candidato")
     process_id: str = Field(description="ID do processo seletivo")
-    resume_text: Optional[str] = Field(
+    resume_text: str | None = Field(
         default=None, description="Texto do currículo do candidato"
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None, description="Anotações do recrutador sobre o candidato"
     )
 
@@ -37,7 +36,7 @@ class ScreenCandidateOutput(BaseModel):
     justification: str = Field(
         description="Justificativa da recomendação em linguagem natural"
     )
-    score: Optional[float] = Field(
+    score: float | None = Field(
         default=None, description="Pontuação de aderência ao perfil (0 a 10)"
     )
     status: str = Field(description="Status da operação: 'success' ou 'error'")
@@ -48,7 +47,7 @@ class MoveCandidateStageInput(BaseModel):
     candidate_id: str = Field(description="ID do candidato a ser movido")
     process_id: str = Field(description="ID do processo seletivo")
     target_stage: CandidateStage = Field(description="Etapa de destino do candidato")
-    reason: Optional[str] = Field(
+    reason: str | None = Field(
         default=None, description="Motivo da movimentação de etapa"
     )
 
@@ -72,7 +71,7 @@ class CandidateProfile(BaseModel):
     candidate_id: str = Field(description="ID único do candidato")
     full_name: str = Field(description="Nome completo do candidato")
     email: str = Field(description="E-mail do candidato")
-    phone: Optional[str] = Field(default=None, description="Telefone do candidato")
+    phone: str | None = Field(default=None, description="Telefone do candidato")
     current_stage: CandidateStage = Field(description="Etapa atual do candidato")
     process_id: str = Field(description="ID do processo seletivo")
     days_in_stage: int = Field(

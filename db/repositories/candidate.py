@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,14 +7,18 @@ from db.models.candidate import CandidateModel
 from utils.exceptions import CandidateNotFoundError
 
 
-async def create_candidate(session: AsyncSession, model: CandidateModel) -> CandidateModel:
+async def create_candidate(
+    session: AsyncSession, model: CandidateModel
+) -> CandidateModel:
     session.add(model)
     await session.commit()
     await session.refresh(model)
     return model
 
 
-async def get_candidate_by_id(session: AsyncSession, candidate_id: str) -> CandidateModel:
+async def get_candidate_by_id(
+    session: AsyncSession, candidate_id: str
+) -> CandidateModel:
     result = await session.execute(
         select(CandidateModel).where(CandidateModel.id == candidate_id)
     )
@@ -43,7 +47,7 @@ async def move_stage(
     candidate = await get_candidate_by_id(session, candidate_id)
     candidate.current_stage = target_stage
     candidate.days_in_stage = 0
-    candidate.stage_updated_at = datetime.now(timezone.utc)
+    candidate.stage_updated_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(candidate)
     return candidate

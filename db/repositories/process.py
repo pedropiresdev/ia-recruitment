@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,14 +8,18 @@ from db.models.process import ProcessTimelineModel, SelectionProcessModel
 from utils.exceptions import ProcessNotFoundError, SuspensionReasonRequiredError
 
 
-async def create_process(session: AsyncSession, model: SelectionProcessModel) -> SelectionProcessModel:
+async def create_process(
+    session: AsyncSession, model: SelectionProcessModel
+) -> SelectionProcessModel:
     session.add(model)
     await session.commit()
     await session.refresh(model)
     return model
 
 
-async def get_process_by_id(session: AsyncSession, process_id: str) -> SelectionProcessModel:
+async def get_process_by_id(
+    session: AsyncSession, process_id: str
+) -> SelectionProcessModel:
     result = await session.execute(
         select(SelectionProcessModel)
         .where(SelectionProcessModel.id == process_id)
@@ -58,7 +62,7 @@ async def suspend_process(
     process.status = "suspenso"
     process.sla_status = "no_prazo"
     process.suspension_reason = suspension_reason
-    process.updated_at = datetime.now(timezone.utc)
+    process.updated_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(process)
     return process
@@ -71,7 +75,7 @@ async def update_sla_status(
 ) -> SelectionProcessModel:
     process = await get_process_by_id(session, process_id)
     process.sla_status = sla_status
-    process.updated_at = datetime.now(timezone.utc)
+    process.updated_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(process)
     return process
@@ -89,7 +93,7 @@ async def add_timeline_event(
         process_id=process_id,
         stage=stage,
         actor=actor,
-        event_date=event_date or datetime.now(timezone.utc),
+        event_date=event_date or datetime.now(UTC),
         notes=notes,
     )
     session.add(event)
@@ -104,7 +108,7 @@ async def get_overdue_processes(
 ) -> tuple[list[SelectionProcessModel], list[SelectionProcessModel]]:
     from datetime import timedelta
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     threshold = now + timedelta(days=days_ahead)
 
     overdue_result = await session.execute(
