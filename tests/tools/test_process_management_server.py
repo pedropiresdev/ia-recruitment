@@ -21,7 +21,7 @@ from utils.exceptions import RecruitmentServiceError, SuspensionReasonRequiredEr
 
 async def test_list_processes_success(mocker):
     mocker.patch(
-        "services.process_management.list_processes_service",
+        "tools.process_management_server.list_processes_service",
         return_value=ListProcessesOutput(
             processes=[],
             total=0,
@@ -35,7 +35,7 @@ async def test_list_processes_success(mocker):
 
 async def test_get_process_detail_success(mocker):
     mocker.patch(
-        "services.process_management.get_process_detail_service",
+        "tools.process_management_server.get_process_detail_service",
         return_value=GetProcessDetailOutput(
             process_id="PROC-001",
             job_title="Head de Produto",
@@ -66,7 +66,7 @@ async def test_get_process_detail_success(mocker):
 
 async def test_suspend_process_with_reason(mocker):
     mocker.patch(
-        "services.process_management.suspend_process_service",
+        "tools.process_management_server.suspend_process_service",
         return_value=SuspendProcessOutput(
             process_id="PROC-001",
             status=ProcessStatus.SUSPENDED,
@@ -85,13 +85,15 @@ async def test_suspend_process_with_reason(mocker):
 
 
 async def test_suspend_process_missing_reason():
-    with pytest.raises(Exception):
-        SuspendProcessInput(process_id="PROC-001", suspension_reason="")
+    with pytest.raises(SuspensionReasonRequiredError):
+        await suspend_process(
+            SuspendProcessInput(process_id="PROC-001", suspension_reason="")
+        )
 
 
 async def test_suspend_process_service_failure(mocker):
     mocker.patch(
-        "services.process_management.suspend_process_service",
+        "tools.process_management_server.suspend_process_service",
         side_effect=RecruitmentServiceError("Falha simulada"),
     )
 

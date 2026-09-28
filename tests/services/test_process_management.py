@@ -15,14 +15,14 @@ from utils.exceptions import SuspensionReasonRequiredError
 
 async def test_list_processes_returns_output():
     result = await list_processes_service(ListProcessesInput())
-    assert result.total == 0
+    assert result.total == len(result.processes)
     assert isinstance(result.processes, list)
 
 
-async def test_suspend_process_with_valid_reason():
+async def test_suspend_process_with_valid_reason(process_id):
     result = await suspend_process_service(
         SuspendProcessInput(
-            process_id="PROC-001",
+            process_id=process_id,
             suspension_reason="Congelamento de headcount aprovado pela diretoria.",
         )
     )
@@ -40,11 +40,11 @@ async def test_suspend_process_empty_reason_raises():
         )
 
 
-async def test_get_process_detail_returns_recommended_actions():
+async def test_get_process_detail_returns_recommended_actions(process_id):
     from services.process_management import get_process_detail_service
 
     result = await get_process_detail_service(
-        GetProcessDetailInput(process_id="PROC-999")
+        GetProcessDetailInput(process_id=process_id)
     )
     assert len(result.recommended_actions) >= 3
     labels = [a.label for a in result.recommended_actions]

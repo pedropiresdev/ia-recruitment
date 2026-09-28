@@ -1,0 +1,70 @@
+# Override usado pelo pipeline de CI/CD (staging e produção).
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+#
+# Diferenças em relação ao docker-compose.yml de desenvolvimento:
+#   - Os serviços da aplicação usam a imagem publicada no GHCR (IMAGE_API),
+#     construída e escaneada pelo pipeline, em vez de buildar no servidor.
+#   - A senha do PostgreSQL vem do .env (POSTGRES_PASSWORD), não fica fixa no repo.
+#   - O PostgreSQL não é exposto na máquina host (só a rede interna do compose).
+#   - O pgAdmin não é iniciado (o pipeline sobe só os serviços listados).
+
+x-app: &app
+  image: ${IMAGE_API:?defina IMAGE_API com a imagem publicada no GHCR}
+
+x-db-url: &db-url postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-recruitment}
+
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-recruitment}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports: !reset []
+
+  mcp-job-opening:
+    <<: *app
+    environment:
+      DATABASE_URL: *db-url
+
+  mcp-process-management:
+    <<: *app
+    environment:
+      DATABASE_URL: *db-url
+
+  mcp-candidate-screening:
+    <<: *app
+    environment:
+      DATABASE_URL: *db-url
+
+  mcp-scheduling:
+    <<: *app
+    environment:
+      DATABASE_URL: *db-url
+
+  mcp-orchestrator:
+    <<: *app
+    environment:
+      DATABASE_URL: *db-url
+
+  agentos:
+    <<: *app
+    environment:
+      DATABASE_URL: *db-url
+
+  # Job de migração: roda `alembic upgrade head` e encerra.
+  # Executado pelo pipeline antes de subir a nova versão:
+  #   docker compose ... run --rm migrate
+  migrate:
+    <<: *app
+    profiles: ["ops"]
+    restart: "no"
+    command: uv run alembic upgrade head
+    environment:
+      DATABASE_URL: *db-url
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy

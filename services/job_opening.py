@@ -84,19 +84,26 @@ async def collect_opening_details_service(
             collected_fields=collected,
             remaining_fields=remaining,
             is_complete=len(remaining) == 0,
-            message="Dados coletados com sucesso." if not remaining else "Coleta de dados em andamento.",
+            message="Dados coletados com sucesso."
+            if not remaining
+            else "Coleta de dados em andamento.",
         )
     except JobOpeningNotFoundError:
         raise
     except Exception as e:
-        raise RecruitmentServiceError(f"Falha ao coletar detalhes da abertura: {e}") from e
+        raise RecruitmentServiceError(
+            f"Falha ao coletar detalhes da abertura: {e}"
+        ) from e
 
 
 async def generate_job_description_service(
     input: GenerateJobDescriptionInput,
 ) -> GenerateJobDescriptionOutput:
     from db.engine import AsyncSessionLocal
-    from db.repositories.job_opening import get_job_opening_by_id, update_job_description
+    from db.repositories.job_opening import (
+        get_job_opening_by_id,
+        update_job_description,
+    )
 
     try:
         async with AsyncSessionLocal() as session:
@@ -141,7 +148,9 @@ async def link_opening_to_posting_service(
 
     try:
         async with AsyncSessionLocal() as session:
-            opening = await link_to_posting(session, input.opening_id, input.job_posting_id)
+            opening = await link_to_posting(
+                session, input.opening_id, input.job_posting_id
+            )
 
         return LinkOpeningToPostingOutput(
             opening_id=opening.id,
@@ -155,9 +164,7 @@ async def link_opening_to_posting_service(
     except JobOpeningNotFoundError:
         raise
     except Exception as e:
-        raise RecruitmentServiceError(
-            f"Falha ao vincular abertura à vaga: {e}"
-        ) from e
+        raise RecruitmentServiceError(f"Falha ao vincular abertura à vaga: {e}") from e
 
 
 async def send_approval_reminder_service(
@@ -189,9 +196,7 @@ async def send_approval_reminder_service(
 
 def _generate_jd_draft(input) -> str:
     requirements_section = (
-        f"\n\n## Requisitos\n{input.requirements}"
-        if input.requirements
-        else ""
+        f"\n\n## Requisitos\n{input.requirements}" if input.requirements else ""
     )
     salary_section = (
         f"\n\n## Remuneração\n{input.salary_range}" if input.salary_range else ""

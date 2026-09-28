@@ -1,5 +1,3 @@
-from typing import Optional
-
 from agno.agent import Agent
 from agno.db.postgres import PostgresDb
 from agno.models.anthropic import Claude
@@ -129,11 +127,17 @@ _RECRUITMENT_TEXT_SUFFIX = """
         chamar schedule_interview.
     """
 
-RECRUITMENT_INSTRUCTIONS = _RECRUITMENT_BASE_INSTRUCTIONS + _RECRUITMENT_WIDGET_INSTRUCTIONS
-RECRUITMENT_INSTRUCTIONS_TEXT = _RECRUITMENT_BASE_INSTRUCTIONS + _RECRUITMENT_TEXT_SUFFIX
+RECRUITMENT_INSTRUCTIONS = (
+    _RECRUITMENT_BASE_INSTRUCTIONS + _RECRUITMENT_WIDGET_INSTRUCTIONS
+)
+RECRUITMENT_INSTRUCTIONS_TEXT = (
+    _RECRUITMENT_BASE_INSTRUCTIONS + _RECRUITMENT_TEXT_SUFFIX
+)
 
 
-def make_recruitment_agent(db: Optional[PostgresDb] = None, use_widgets: bool = True) -> Agent:
+def make_recruitment_agent(
+    db: PostgresDb | None = None, use_widgets: bool = True
+) -> Agent:
     """
     Cria uma instância do agente de recrutamento.
 
@@ -145,13 +149,17 @@ def make_recruitment_agent(db: Optional[PostgresDb] = None, use_widgets: bool = 
             de widget para renderização visual. Se False (usado pela LiGiaPro via MCP),
             retorna apenas texto markdown sem widgets.
     """
-    instructions = RECRUITMENT_INSTRUCTIONS if use_widgets else RECRUITMENT_INSTRUCTIONS_TEXT
+    instructions = (
+        RECRUITMENT_INSTRUCTIONS if use_widgets else RECRUITMENT_INSTRUCTIONS_TEXT
+    )
     return Agent(
         name="Agente de Recrutamento",
         model=Claude(id="claude-sonnet-4-5"),
         tools=[
             MCPTools(url=settings.job_opening_server_url, refresh_connection=True),
-            MCPTools(url=settings.process_management_server_url, refresh_connection=True),
+            MCPTools(
+                url=settings.process_management_server_url, refresh_connection=True
+            ),
             MCPTools(url=settings.screening_server_url, refresh_connection=True),
             MCPTools(url=settings.scheduling_server_url, refresh_connection=True),
         ],

@@ -1,88 +1,107 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import type { RecruitmentProcess, SLAStatus } from "@/types/recruitment";
-import { ProcessCard } from "@/components/recruitment/ProcessPanel/ProcessCard";
-import { SLABadge } from "@/components/recruitment/ProcessPanel/SLABadge";
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import type { RecruitmentProcess, SLAStatus } from '@/types/recruitment'
+import { ProcessCard } from '@/components/recruitment/ProcessPanel/ProcessCard'
+import { SLABadge } from '@/components/recruitment/ProcessPanel/SLABadge'
 
-type SLAFilter = SLAStatus | "todos";
+type SLAFilter = SLAStatus | 'todos'
 
 const SLA_SECTIONS: { key: SLAFilter; label: string; color: string }[] = [
-  { key: "em_atraso", label: "SLA Vencido", color: "text-red-400 border-red-500/20 bg-red-500/5" },
-  { key: "em_risco", label: "Em Risco", color: "text-yellow-400 border-yellow-500/20 bg-yellow-500/5" },
-  { key: "no_prazo", label: "No Prazo", color: "text-green-400 border-green-500/20 bg-green-500/5" },
-];
+  {
+    key: 'em_atraso',
+    label: 'SLA Vencido',
+    color: 'text-red-400 border-red-500/20 bg-red-500/5'
+  },
+  {
+    key: 'em_risco',
+    label: 'Em Risco',
+    color: 'text-yellow-400 border-yellow-500/20 bg-yellow-500/5'
+  },
+  {
+    key: 'no_prazo',
+    label: 'No Prazo',
+    color: 'text-green-400 border-green-500/20 bg-green-500/5'
+  }
+]
 
 export default function ProcessosPage() {
-  const router = useRouter();
-  const [processes, setProcesses] = useState<RecruitmentProcess[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [slaFilter, setSlaFilter] = useState<SLAFilter>("todos");
-  const [search, setSearch] = useState("");
+  const router = useRouter()
+  const [processes, setProcesses] = useState<RecruitmentProcess[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [slaFilter, setSlaFilter] = useState<SLAFilter>('todos')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
-    fetch("/api/processes")
+    fetch('/api/processes')
       .then((r) => r.json())
       .then((data) => {
-        setProcesses(data.processes ?? []);
-        setLoading(false);
+        setProcesses(data.processes ?? [])
+        setLoading(false)
       })
       .catch(() => {
-        setError("Não foi possível conectar ao servidor. Verifique se o AgentOS está rodando.");
-        setLoading(false);
-      });
-  }, []);
+        setError(
+          'Não foi possível conectar ao servidor. Verifique se o AgentOS está rodando.'
+        )
+        setLoading(false)
+      })
+  }, [])
 
   function handleAction(prompt: string) {
-    router.push(`/?prompt=${encodeURIComponent(prompt)}`);
+    router.push(`/?prompt=${encodeURIComponent(prompt)}`)
   }
 
   const filtered = processes.filter((p) => {
-    const matchSLA = slaFilter === "todos" || p.sla_status === slaFilter;
+    const matchSLA = slaFilter === 'todos' || p.sla_status === slaFilter
     const matchSearch =
-      search === "" ||
+      search === '' ||
       p.job_title.toLowerCase().includes(search.toLowerCase()) ||
       p.department.toLowerCase().includes(search.toLowerCase()) ||
-      p.recruiter_name.toLowerCase().includes(search.toLowerCase());
-    return matchSLA && matchSearch;
-  });
+      p.recruiter_name.toLowerCase().includes(search.toLowerCase())
+    return matchSLA && matchSearch
+  })
 
   const counts = {
-    em_atraso: processes.filter((p) => p.sla_status === "em_atraso").length,
-    em_risco: processes.filter((p) => p.sla_status === "em_risco").length,
-    no_prazo: processes.filter((p) => p.sla_status === "no_prazo").length,
-  };
+    em_atraso: processes.filter((p) => p.sla_status === 'em_atraso').length,
+    em_risco: processes.filter((p) => p.sla_status === 'em_risco').length,
+    no_prazo: processes.filter((p) => p.sla_status === 'no_prazo').length
+  }
 
   const sectionsToShow =
-    slaFilter === "todos"
+    slaFilter === 'todos'
       ? SLA_SECTIONS.filter((s) => filtered.some((p) => p.sla_status === s.key))
-      : SLA_SECTIONS.filter((s) => s.key === slaFilter);
+      : SLA_SECTIONS.filter((s) => s.key === slaFilter)
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur px-6 py-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-6 py-4 backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-base font-semibold text-primary">
               Painel de Processos Seletivos
             </h1>
-            <p className="text-xs text-muted mt-0.5">
-              {loading ? "Carregando..." : `${processes.length} processos · clique para consultar o agente`}
+            <p className="mt-0.5 text-xs text-muted">
+              {loading
+                ? 'Carregando...'
+                : `${processes.length} processos · clique para consultar o agente`}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             {/* SLA summary pills */}
             {!loading && (
               <div className="flex gap-1.5">
                 {Object.entries(counts).map(([k, v]) => (
                   <button
                     key={k}
-                    onClick={() => setSlaFilter(k === slaFilter ? "todos" : (k as SLAFilter))}
-                    className={`transition-opacity ${k !== slaFilter && slaFilter !== "todos" ? "opacity-40" : ""}`}
+                    onClick={() =>
+                      setSlaFilter(k === slaFilter ? 'todos' : (k as SLAFilter))
+                    }
+                    className={`transition-opacity ${k !== slaFilter && slaFilter !== 'todos' ? 'opacity-40' : ''}`}
                   >
                     <SLABadge status={k as SLAStatus} />
                     <span className="ml-1 text-xs text-muted">{v}</span>
@@ -91,12 +110,12 @@ export default function ProcessosPage() {
               </div>
             )}
 
-            <a
+            <Link
               href="/"
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted hover:text-primary hover:bg-accent transition-colors"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted transition-colors hover:bg-accent hover:text-primary"
             >
               ← Voltar ao chat
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -114,9 +133,9 @@ export default function ProcessosPage() {
 
       <main className="flex-1 p-6">
         {loading && (
-          <div className="flex items-center justify-center h-40">
-            <div className="flex items-center gap-2 text-muted text-sm">
-              <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+          <div className="flex h-40 items-center justify-center">
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Carregando processos...
             </div>
           </div>
@@ -129,7 +148,7 @@ export default function ProcessosPage() {
         )}
 
         {!loading && !error && filtered.length === 0 && (
-          <div className="flex items-center justify-center h-40 text-muted text-sm">
+          <div className="flex h-40 items-center justify-center text-sm text-muted">
             Nenhum processo encontrado com os filtros selecionados.
           </div>
         )}
@@ -137,11 +156,13 @@ export default function ProcessosPage() {
         {!loading && !error && (
           <div className="space-y-8">
             {sectionsToShow.map((section) => {
-              const items = filtered.filter((p) => p.sla_status === section.key);
-              if (items.length === 0) return null;
+              const items = filtered.filter((p) => p.sla_status === section.key)
+              if (items.length === 0) return null
               return (
                 <section key={section.key}>
-                  <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 mb-4 ${section.color}`}>
+                  <div
+                    className={`mb-4 inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 ${section.color}`}
+                  >
                     <span className="text-xs font-semibold uppercase tracking-wide">
                       {section.label}
                     </span>
@@ -157,11 +178,11 @@ export default function ProcessosPage() {
                     ))}
                   </div>
                 </section>
-              );
+              )
             })}
           </div>
         )}
       </main>
     </div>
-  );
+  )
 }

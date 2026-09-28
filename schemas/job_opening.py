@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -12,11 +10,11 @@ class CreateJobOpeningInput(BaseModel):
         description="Nível de senioridade: Júnior, Pleno, Sênior, Especialista, Gestão"
     )
     deadline_days: int = Field(description="Prazo em dias para preenchimento da vaga")
-    requirements: Optional[str] = Field(
+    requirements: str | None = Field(
         default=None,
         description="Requisitos técnicos e comportamentais da posição",
     )
-    salary_range: Optional[str] = Field(
+    salary_range: str | None = Field(
         default=None,
         description="Faixa salarial esperada, ex: 'R$8.000 - R$12.000'",
     )

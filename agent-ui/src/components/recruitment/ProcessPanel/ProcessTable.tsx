@@ -1,30 +1,34 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import type { ProcessStatus, RecruitmentProcess, SLAStatus } from "@/types/recruitment";
-import { ProcessRow } from "./ProcessRow";
+import { useState } from 'react'
+import type {
+  ProcessStatus,
+  RecruitmentProcess,
+  SLAStatus
+} from '@/types/recruitment'
+import { ProcessRow } from './ProcessRow'
 
-type FilterStatus = ProcessStatus | "todos";
-type FilterSLA = SLAStatus | "todos";
+type FilterStatus = ProcessStatus | 'todos'
+type FilterSLA = SLAStatus | 'todos'
 
 type ProcessTableProps = {
-  processes: RecruitmentProcess[];
-  onRowClick: (prompt: string) => void;
-};
+  processes: RecruitmentProcess[]
+  onRowClick: (prompt: string) => void
+}
 
 export function ProcessTable({ processes, onRowClick }: ProcessTableProps) {
-  const [statusFilter, setStatusFilter] = useState<FilterStatus>("todos");
-  const [slaFilter, setSlaFilter] = useState<FilterSLA>("todos");
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('todos')
+  const [slaFilter, setSlaFilter] = useState<FilterSLA>('todos')
 
   const filtered = processes.filter((p) => {
-    const matchStatus = statusFilter === "todos" || p.status === statusFilter;
-    const matchSLA = slaFilter === "todos" || p.sla_status === slaFilter;
-    return matchStatus && matchSLA;
-  });
+    const matchStatus = statusFilter === 'todos' || p.status === statusFilter
+    const matchSLA = slaFilter === 'todos' || p.sla_status === slaFilter
+    return matchStatus && matchSLA
+  })
 
   return (
-    <div className="rounded-xl border border-border bg-background-secondary overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+    <div className="overflow-hidden rounded-xl border border-border bg-background-secondary">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <span className="text-sm font-medium text-primary">Filtrar:</span>
         <select
           value={statusFilter}
@@ -48,20 +52,22 @@ export function ProcessTable({ processes, onRowClick }: ProcessTableProps) {
           <option value="em_atraso">Em atraso</option>
         </select>
         <span className="ml-auto text-xs text-muted">
-          {filtered.length} processo{filtered.length !== 1 ? "s" : ""}
+          {filtered.length} processo{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-xs text-muted uppercase tracking-wide">
+            <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-2 text-left font-medium">Vaga</th>
               <th className="px-4 py-2 text-left font-medium">Departamento</th>
               <th className="px-4 py-2 text-left font-medium">Recrutador</th>
               <th className="px-4 py-2 text-left font-medium">Status</th>
               <th className="px-4 py-2 text-left font-medium">SLA</th>
               <th className="px-4 py-2 text-left font-medium">Candidatos</th>
-              <th className="px-4 py-2 text-left font-medium">Última atualização</th>
+              <th className="px-4 py-2 text-left font-medium">
+                Última atualização
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -84,5 +90,5 @@ export function ProcessTable({ processes, onRowClick }: ProcessTableProps) {
         </table>
       </div>
     </div>
-  );
+  )
 }

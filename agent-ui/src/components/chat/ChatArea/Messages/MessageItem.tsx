@@ -25,7 +25,17 @@ interface MessageProps {
 }
 
 type Widget =
-  | { __widget: 'process_dashboard'; summary?: string; kpis: { total: number; em_atraso: number; em_risco: number; no_prazo: number }; items: RecruitmentProcess[] }
+  | {
+      __widget: 'process_dashboard'
+      summary?: string
+      kpis: {
+        total: number
+        em_atraso: number
+        em_risco: number
+        no_prazo: number
+      }
+      items: RecruitmentProcess[]
+    }
   | { __widget: 'process_list'; items: RecruitmentProcess[] }
   | ({ __widget: 'process_detail' } & ProcessDetailWidgetData)
   | ({ __widget: 'candidate_board' } & CandidateBoardWidgetData)
@@ -34,7 +44,10 @@ type Widget =
   | SchedulingOptionsWidgetData
 
 /** Extracts the last ```json block containing a __widget field. */
-function extractWidget(content: string): { clean: string; widget: Widget | null } {
+function extractWidget(content: string): {
+  clean: string
+  widget: Widget | null
+} {
   const fenceRe = /```json\s*\n(\{[\s\S]*?"__widget"[\s\S]*?\})\s*\n```/g
   let last: RegExpExecArray | null = null
   let match: RegExpExecArray | null
@@ -57,7 +70,10 @@ const AgentMessage = ({ message }: MessageProps) => {
   const { streamingErrorMessage } = useStore()
 
   const { clean, widget } = useMemo(
-    () => (message.content ? extractWidget(message.content) : { clean: '', widget: null }),
+    () =>
+      message.content
+        ? extractWidget(message.content)
+        : { clean: '', widget: null },
     [message.content]
   )
 
@@ -90,9 +106,13 @@ const AgentMessage = ({ message }: MessageProps) => {
           <ProcessDashboardWidget
             kpis={{
               total: widget.items.length,
-              em_atraso: widget.items.filter((p) => p.sla_status === 'em_atraso').length,
-              em_risco: widget.items.filter((p) => p.sla_status === 'em_risco').length,
-              no_prazo: widget.items.filter((p) => p.sla_status === 'no_prazo').length,
+              em_atraso: widget.items.filter(
+                (p) => p.sla_status === 'em_atraso'
+              ).length,
+              em_risco: widget.items.filter((p) => p.sla_status === 'em_risco')
+                .length,
+              no_prazo: widget.items.filter((p) => p.sla_status === 'no_prazo')
+                .length
             }}
             items={widget.items}
           />
@@ -110,12 +130,15 @@ const AgentMessage = ({ message }: MessageProps) => {
           <CandidateProfileWidget {...widget} />
         )}
 
-        {(widget?.__widget === 'interview_list' || widget?.__widget === 'interview_card') && (
+        {(widget?.__widget === 'interview_list' ||
+          widget?.__widget === 'interview_card') && (
           <InterviewWidget {...(widget as InterviewWidgetData)} />
         )}
 
         {widget?.__widget === 'scheduling_options' && (
-          <SchedulingOptionsWidget {...(widget as SchedulingOptionsWidgetData)} />
+          <SchedulingOptionsWidget
+            {...(widget as SchedulingOptionsWidgetData)}
+          />
         )}
 
         {message.videos && message.videos.length > 0 && (
@@ -139,7 +162,9 @@ const AgentMessage = ({ message }: MessageProps) => {
     } else {
       messageContent = (
         <div className="flex w-full flex-col gap-4">
-          <MarkdownRenderer>{message.response_audio.transcript}</MarkdownRenderer>
+          <MarkdownRenderer>
+            {message.response_audio.transcript}
+          </MarkdownRenderer>
           {message.response_audio.content && (
             <Audios audio={[message.response_audio]} />
           )}

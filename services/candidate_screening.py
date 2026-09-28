@@ -62,7 +62,9 @@ async def move_candidate_stage_service(
             previous_stage = candidate.current_stage
 
         async with AsyncSessionLocal() as session:
-            candidate = await move_stage(session, input.candidate_id, input.target_stage.value)
+            candidate = await move_stage(
+                session, input.candidate_id, input.target_stage.value
+            )
 
         return MoveCandidateStageOutput(
             candidate_id=candidate.id,

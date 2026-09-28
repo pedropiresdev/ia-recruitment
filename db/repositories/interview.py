@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,14 +7,18 @@ from db.models.interview import InterviewModel
 from utils.exceptions import RecruitmentServiceError
 
 
-async def create_interview(session: AsyncSession, model: InterviewModel) -> InterviewModel:
+async def create_interview(
+    session: AsyncSession, model: InterviewModel
+) -> InterviewModel:
     session.add(model)
     await session.commit()
     await session.refresh(model)
     return model
 
 
-async def get_interview_by_id(session: AsyncSession, interview_id: str) -> InterviewModel:
+async def get_interview_by_id(
+    session: AsyncSession, interview_id: str
+) -> InterviewModel:
     result = await session.execute(
         select(InterviewModel).where(InterviewModel.id == interview_id)
     )
@@ -43,14 +47,16 @@ async def get_interviewer_slots(
 ) -> list[InterviewModel]:
     """Retorna entrevistas agendadas do entrevistador no período para calcular disponibilidade."""
     result = await session.execute(
-        select(InterviewModel).where(
+        select(InterviewModel)
+        .where(
             and_(
                 InterviewModel.interviewer_id == interviewer_id,
                 InterviewModel.scheduled_datetime >= date_from,
                 InterviewModel.scheduled_datetime <= date_to,
                 InterviewModel.status == "agendada",
             )
-        ).order_by(InterviewModel.scheduled_datetime)
+        )
+        .order_by(InterviewModel.scheduled_datetime)
     )
     return list(result.scalars().all())
 
@@ -64,7 +70,7 @@ async def reschedule_interview(
     interview = await get_interview_by_id(session, interview_id)
     interview.scheduled_datetime = new_datetime
     interview.reschedule_reason = reason
-    interview.updated_at = datetime.now(timezone.utc)
+    interview.updated_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(interview)
     return interview
@@ -78,7 +84,7 @@ async def cancel_interview(
     interview = await get_interview_by_id(session, interview_id)
     interview.status = "cancelada"
     interview.cancellation_reason = reason
-    interview.updated_at = datetime.now(timezone.utc)
+    interview.updated_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(interview)
     return interview

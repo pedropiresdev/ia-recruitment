@@ -1,0 +1,17 @@
+# Nunca enviar segredos nem artefatos locais para o contexto de build
+.env
+.env.*
+!.env.example
+.git
+.github
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.xml
+htmlcov
+agent-ui
+docs
+tests
